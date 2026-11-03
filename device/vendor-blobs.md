@@ -77,3 +77,22 @@ and drop the source-built OMX modules from `product/media.mk` (in `device-tree.p
 HAL also needs Huawei's **product** partition mounted at `/product` (ramdisk `fstab.qcom` + an empty
 `/product` directory in the ramdisk): the agassi ACDB tuning, mixer paths and platform info live in
 `/product/etc/acdbdata/agassi`.
+
+## lineage-17.1 build, stage A: blob lines removed from `ags_w09-vendor.mk`
+
+The 17.1 build uses `BUILD_BROKEN_DUP_RULES` (the blob list overlaps ~110 modules Q builds from
+source). With duplicate rules make keeps one recipe but merges the prerequisites, so a blob copied
+onto a source module's install path still makes that source compile. These sources do not build
+on lineage-17.1 against this 3.18 kernel's headers, so their blob lines are dropped. Stage A does
+not flash the built vendor image (the device keeps the 15.1 v2 vendor partition, which still has
+all of these files); stage B regenerates the list and must deal with each one.
+
+| Blob lines | Source that collided | Why it fails | Stage B |
+|---|---|---|---|
+| `bin/rmnetcli`, `lib{,64}/librmnetctl.so` | `vendor/qcom/opensource/dataservices` | kernel `rmnet_data.h` lacks `RMNET_NETLINK_NEW_VND_WITH_NAME` | unused (no modem data): leave out |
+| `bin/ipacm`, `bin/ipacm-diag`, `etc/IPACM_cfg.xml`, `lib{,64}/libipanat.so` | `vendor/qcom/opensource/data-ipa-cfg-mgr` | old IPA uapi headers | unused (no `/dev/ipa`): leave out |
+| `lib{,64}/libOmxVdec.so` | `hardware/qcom-caf/msm8996/media` | kernel `msm_vidc.h` lacks the HDR transfer enums (`MSM_VIDC_TRANSFER_SMPTE_ST2084`, `_HLG`) | needed: keep the blob and stop the source module from being defined, or add the enums to the uapi header |
+| `etc/camera/filter/filter.xml` | none: Q runs `xmllint` on every `.xml` in `PRODUCT_COPY_FILES` | the file declares `encoding="gb2312"`, which the host libxml2 does not support | ship it as a `BUILD_PREBUILT` module (no lint) |
+
+    sed -i -E '\#proprietary/vendor/(bin/rmnetcli|bin/ipacm|bin/ipacm-diag|etc/IPACM_cfg.xml|lib(64)?/(libipanat|librmnetctl|libOmxVdec)\.so|etc/camera/filter/filter\.xml):#d' \
+        vendor/huawei/ags_w09/ags_w09-vendor.mk
