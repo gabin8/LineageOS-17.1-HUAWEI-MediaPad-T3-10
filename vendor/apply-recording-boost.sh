@@ -4,12 +4,13 @@
 D=${D:-/product/etc/acdbdata/agassi}
 M=$D/mixer_paths_mtp.xml
 A=$D/audio_platform_info.xml
-T=/data/local/tmp/rec-boost.$$
+T=${REC_BOOST_TMP:-/data/local/tmp}/rec-boost.$$
 case "$D" in /product/*) LIVE=1 ;; *) LIVE=0 ;; esac
 
 finish() {
-    chmod 0644 "$M" "$A"; chown root:root "$M" "$A"
+    chmod 0644 "$M" "$A"
     if [ $LIVE = 1 ]; then
+        chown root:root "$M" "$A"
         restorecon "$M" "$A"; sync; mount -o ro,remount /product
         kill $(pidof android.hardware.audio@2.0-service) 2>/dev/null
     fi

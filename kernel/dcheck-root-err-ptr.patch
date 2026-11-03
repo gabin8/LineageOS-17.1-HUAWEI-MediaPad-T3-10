@@ -1,0 +1,30 @@
+From c06425d5c7c6f87e91ab356672698901510cb238 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:00:24 +0200
+Subject: [PATCH] dcheck_root: handle filp_open() error pointers
+
+get_ro_secure() runs as a late_initcall and opens /default.prop. On
+Android 8+ that is a symlink to system/etc/prop.default, dangling before
+/system is mounted, so filp_open() returns ERR_PTR(-ENOENT). The NULL
+check missed it and the error pointer was dereferenced (panic after the
+boot logo). The failure path only changes a log line in notice_to_apr().
+---
+ fs/proc/dcheck_root.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/proc/dcheck_root.c b/fs/proc/dcheck_root.c
+index d1e284aa..c52c33d7 100755
+--- a/fs/proc/dcheck_root.c
++++ b/fs/proc/dcheck_root.c
+@@ -100,7 +100,7 @@ static int get_ro_secure(void)
+     int i = 0;
+ 
+     filp = filp_open(DEFAULT_PROP_FILE, O_RDONLY, 0644);
+-    if(NULL == filp){
++    if (IS_ERR_OR_NULL(filp)) {
+         printk(KERN_WARNING "DEFAULT_PROP_FILE OPEN FAIL!\n");
+         ro_secue = 1;
+         return ro_secue;
+-- 
+2.53.0
+

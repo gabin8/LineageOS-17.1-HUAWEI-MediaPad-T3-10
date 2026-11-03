@@ -1,0 +1,44 @@
+From 5c956474fdbe36d12a520690a676fd66a27a776d Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:00:29 +0200
+Subject: [PATCH] defconfig: IKCONFIG_PROC on, DEVMEM and USELIB off (Android
+ 3.18 base config)
+
+---
+ arch/arm64/configs/merge_msm8937_64_defconfig | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/configs/merge_msm8937_64_defconfig b/arch/arm64/configs/merge_msm8937_64_defconfig
+index 84adb190..0ea09a8e 100644
+--- a/arch/arm64/configs/merge_msm8937_64_defconfig
++++ b/arch/arm64/configs/merge_msm8937_64_defconfig
+@@ -51,7 +51,7 @@ CONFIG_SWAP=y
+ # CONFIG_POSIX_MQUEUE is not set
+ CONFIG_CROSS_MEMORY_ATTACH=y
+ # CONFIG_FHANDLE is not set
+-CONFIG_USELIB=y
++# CONFIG_USELIB is not set
+ CONFIG_AUDIT=y
+ CONFIG_HAVE_ARCH_AUDITSYSCALL=y
+ CONFIG_AUDITSYSCALL=y
+@@ -120,7 +120,7 @@ CONFIG_RCU_NOCB_CPU=y
+ CONFIG_RCU_NOCB_CPU_ALL=y
+ CONFIG_BUILD_BIN2C=y
+ CONFIG_IKCONFIG=y
+-# CONFIG_IKCONFIG_PROC is not set
++CONFIG_IKCONFIG_PROC=y
+ CONFIG_LOG_BUF_SHIFT=20
+ # CONFIG_CONSOLE_FLUSH_ON_HOTPLUG is not set
+ CONFIG_LOG_CPU_MAX_BUF_SHIFT=12
+@@ -1868,7 +1868,7 @@ CONFIG_UNIX98_PTYS=y
+ # CONFIG_N_GSM is not set
+ # CONFIG_TRACE_SINK is not set
+ CONFIG_HANDSET_SYSRQ_RESET=y
+-CONFIG_DEVMEM=y
++# CONFIG_DEVMEM is not set
+ # CONFIG_DEVKMEM is not set
+ 
+ #
+-- 
+2.53.0
+

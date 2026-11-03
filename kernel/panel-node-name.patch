@@ -1,0 +1,13 @@
+diff --git a/arch/arm64/boot/dts/qcom/lcdkit/ags_w09_va/ags_w09_va_boe_nt51017_9p6_800p_video.dtsi b/arch/arm64/boot/dts/qcom/lcdkit/ags_w09_va/ags_w09_va_boe_nt51017_9p6_800p_video.dtsi
+index 624b1b81..79df7201 100644
+--- a/arch/arm64/boot/dts/qcom/lcdkit/ags_w09_va/ags_w09_va_boe_nt51017_9p6_800p_video.dtsi
++++ b/arch/arm64/boot/dts/qcom/lcdkit/ags_w09_va/ags_w09_va_boe_nt51017_9p6_800p_video.dtsi
+@@ -16,7 +16,7 @@
+  * VERSION = 1.1
+  *-----------------------------------------------------------------------*/
+ / {
+-	dsi_ags_w09_va_boe_nt51017_9p6_800p_video: lcdkit_ags_w09_va_boe_nt51017_9p6_800p_video {
++	dsi_ags_w09_va_boe_nt51017_9p6_800p_video: qcom,mdss_dsi_boent51017_800p_video {
+ 		compatible = "boe_nt51017_9p6_800p_video";
+ 		hw,lcdkit-panel-name = "BOE_NT51017 9P6 VIDEO TFT 800 x 1280";
+ 		hw,lcdkit-panel-type = <0x1>;

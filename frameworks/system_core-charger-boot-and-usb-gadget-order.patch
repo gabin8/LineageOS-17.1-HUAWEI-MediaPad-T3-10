@@ -1,0 +1,79 @@
+From 08f07145f2a2cac31e6deda5b034df5e1124d8ca Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:03:07 +0200
+Subject: [PATCH] rootdir: boot normally from charger mode; enable the
+ android_usb gadget after adbd starts (AGS-W09)
+
+The AGS-W09 engineering bootloader passes androidboot.mode=charger on USB
+power (15.1 fix 5). Its android_usb adb function is FunctionFS-backed, so
+the gadget must be enabled only once adbd has written its descriptors
+(15.1 fix 8).
+
+Change-Id: Id67bfc13f2c1943105da594a058b884972a85734
+---
+ rootdir/init.rc     | 4 +++-
+ rootdir/init.usb.rc | 8 ++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index d5afabc..3f7b1ae 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -775,7 +775,9 @@ on property:sys.init_log_level=*
+     loglevel ${sys.init_log_level}
+ 
+ on charger
+-    class_start charger
++    # AGS-W09: the engineering bootloader passes androidboot.mode=charger whenever USB
++    # power is present, so boot normally (the escape hatch below stops charger, runs late-init).
++    setprop sys.boot_from_charger_mode 1
+ 
+ on property:vold.decrypt=trigger_load_persist_props
+     load_persist_props
+diff --git a/rootdir/init.usb.rc b/rootdir/init.usb.rc
+index b6cba90..340d733 100644
+--- a/rootdir/init.usb.rc
++++ b/rootdir/init.usb.rc
+@@ -36,8 +36,8 @@ on property:sys.usb.config=adb && property:sys.usb.configfs=0
+     write /sys/class/android_usb/android0/idVendor 18d1
+     write /sys/class/android_usb/android0/idProduct 4EE7
+     write /sys/class/android_usb/android0/functions ${sys.usb.config}
+-    write /sys/class/android_usb/android0/enable 1
+     start adbd
++    write /sys/class/android_usb/android0/enable 1
+     setprop sys.usb.state ${sys.usb.config}
+ 
+ # USB accessory configuration
+@@ -55,8 +55,8 @@ on property:sys.usb.config=accessory,adb && property:sys.usb.configfs=0
+     write /sys/class/android_usb/android0/idVendor 18d1
+     write /sys/class/android_usb/android0/idProduct 2d01
+     write /sys/class/android_usb/android0/functions ${sys.usb.config}
+-    write /sys/class/android_usb/android0/enable 1
+     start adbd
++    write /sys/class/android_usb/android0/enable 1
+     setprop sys.usb.state ${sys.usb.config}
+ 
+ # audio accessory configuration
+@@ -74,8 +74,8 @@ on property:sys.usb.config=audio_source,adb && property:sys.usb.configfs=0
+     write /sys/class/android_usb/android0/idVendor 18d1
+     write /sys/class/android_usb/android0/idProduct 2d03
+     write /sys/class/android_usb/android0/functions ${sys.usb.config}
+-    write /sys/class/android_usb/android0/enable 1
+     start adbd
++    write /sys/class/android_usb/android0/enable 1
+     setprop sys.usb.state ${sys.usb.config}
+ 
+ # USB and audio accessory configuration
+@@ -93,8 +93,8 @@ on property:sys.usb.config=accessory,audio_source,adb && property:sys.usb.config
+     write /sys/class/android_usb/android0/idVendor 18d1
+     write /sys/class/android_usb/android0/idProduct 2d05
+     write /sys/class/android_usb/android0/functions ${sys.usb.config}
+-    write /sys/class/android_usb/android0/enable 1
+     start adbd
++    write /sys/class/android_usb/android0/enable 1
+     setprop sys.usb.state ${sys.usb.config}
+ 
+ # Used to set USB configuration at boot and to switch the configuration
+-- 
+2.53.0
+
