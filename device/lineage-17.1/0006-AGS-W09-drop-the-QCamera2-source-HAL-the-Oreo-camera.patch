@@ -1,0 +1,26 @@
+From 55fa3161b261e7450fee4778cfe870e2623bf1e6 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:26:11 +0200
+Subject: [PATCH] AGS-W09: drop the QCamera2 source HAL (the Oreo camera blobs
+ replaced it in 15.1, fix 33)
+
+---
+ product/camera.mk | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/product/camera.mk b/product/camera.mk
+index ba2814d..fa67dd5 100644
+--- a/product/camera.mk
++++ b/product/camera.mk
+@@ -6,9 +6,8 @@ PRODUCT_COPY_FILES += \
+     frameworks/native/data/etc/android.hardware.camera.raw.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.raw.xml
+ 
+ # Camera
+-PRODUCT_PACKAGES += \
+-    camera.msm8937 \
+-    libmm-qcamera
++# camera.msm8937 and libmm-qcamera are the stock EMUI 8 (Oreo) blobs (15.1 fix 33),
++# copied by vendor/huawei/ags_w09; the QCamera2 source HAL is no longer built.
+ 	
+ # Camera HAL
+ PRODUCT_PACKAGES += \

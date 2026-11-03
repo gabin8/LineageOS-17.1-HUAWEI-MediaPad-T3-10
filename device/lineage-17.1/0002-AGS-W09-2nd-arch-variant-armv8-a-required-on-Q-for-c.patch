@@ -1,0 +1,23 @@
+From a9b9f9167cf12347c9b12a4d3a565354a88562dd Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:18:01 +0200
+Subject: [PATCH 02/17] AGS-W09: 2nd arch variant armv8-a (required on Q for
+ cortex-a53)
+
+---
+ board/00-qcom-platform-msm8937.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/00-qcom-platform-msm8937.mk b/board/00-qcom-platform-msm8937.mk
+index 328a82e..571b36f 100644
+--- a/board/00-qcom-platform-msm8937.mk
++++ b/board/00-qcom-platform-msm8937.mk
+@@ -10,7 +10,7 @@ TARGET_CPU_VARIANT := cortex-a53
+ 
+ # Second architecture
+ TARGET_2ND_ARCH := arm
+-TARGET_2ND_ARCH_VARIANT := armv7-a-neon
++TARGET_2ND_ARCH_VARIANT := armv8-a
+ TARGET_2ND_CPU_ABI := armeabi-v7a
+ TARGET_2ND_CPU_ABI2 := armeabi
+ TARGET_2ND_CPU_VARIANT := cortex-a53

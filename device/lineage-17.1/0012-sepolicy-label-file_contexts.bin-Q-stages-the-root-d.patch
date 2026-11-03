@@ -1,0 +1,22 @@
+From 05961a135d6e6d2adb6510c12b1f24f6e5f9bfcd Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 19:40:52 +0200
+Subject: [PATCH 12/17] sepolicy: label /file_contexts.bin (Q stages the root
+ dir into system.img)
+
+---
+ sepolicy/file_contexts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sepolicy/file_contexts b/sepolicy/file_contexts
+index 9437886..1d8bdee 100644
+--- a/sepolicy/file_contexts
++++ b/sepolicy/file_contexts
+@@ -33,3 +33,7 @@
+ /(vendor|system/vendor)/bin/perfd	u:object_r:perfd_exec:s0
+ /data/system/perfd(/.*)?		u:object_r:mpctl_data_file:s0
+ /dev/socket/perfd			u:object_r:mpctl_socket:s0
++
++# Q builds system.img with the root dir staged in; non-split builds still install the build-time
++# /file_contexts.bin there, and Q dropped its label (Oreo had this one).
++/file_contexts\.bin                         u:object_r:file_contexts_file:s0

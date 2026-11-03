@@ -1,0 +1,48 @@
+From 448cf131193c73645d3f66978b38cea06dc216bd Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 23:11:05 +0200
+Subject: [PATCH] LineageSettingsProvider: overlayable default for
+ LOCKSCREEN_ROTATION
+
+Tablets that ship with lock screen rotation (config_enableLockScreenRotation
+is true for sw600dp) still came up portrait-locked on the lock screen after
+every fresh install, because the LineageOS toggle is hardcoded to off.
+Add def_lockscreen_rotation (default false, behaviour unchanged) so a device
+can overlay it.
+
+Change-Id: I1bb8850ec278a2c1b995b93ba8624ce8c6962130
+---
+ packages/LineageSettingsProvider/res/values/defaults.xml     | 5 +++++
+ .../org/lineageos/lineagesettings/LineageDatabaseHelper.java | 3 +++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/packages/LineageSettingsProvider/res/values/defaults.xml b/packages/LineageSettingsProvider/res/values/defaults.xml
+index c6f1e3d..2ec4d4c 100644
+--- a/packages/LineageSettingsProvider/res/values/defaults.xml
++++ b/packages/LineageSettingsProvider/res/values/defaults.xml
+@@ -27,6 +27,11 @@
+     <!-- Default for LineageSettings.System.SYSTEM_PROFILES_ENABLED -->
+     <bool name="def_profiles_enabled">true</bool>
+ 
++    <!-- Default for LineageSettings.System.LOCKSCREEN_ROTATION (SystemUI also needs
++         config_enableLockScreenRotation, e.g. sw600dp, and accelerometer rotation on).
++         Devices whose natural use is landscape (tablets) can overlay this to true. -->
++    <bool name="def_lockscreen_rotation">false</bool>
++
+     <!-- Defaults for Secure -->
+ 
+     <!-- Default for LineageSettings.Secure.ADVANCED_MODE -->
+diff --git a/packages/LineageSettingsProvider/src/org/lineageos/lineagesettings/LineageDatabaseHelper.java b/packages/LineageSettingsProvider/src/org/lineageos/lineagesettings/LineageDatabaseHelper.java
+index 561ff49..22878da 100644
+--- a/packages/LineageSettingsProvider/src/org/lineageos/lineagesettings/LineageDatabaseHelper.java
++++ b/packages/LineageSettingsProvider/src/org/lineageos/lineagesettings/LineageDatabaseHelper.java
+@@ -561,6 +561,9 @@ public class LineageDatabaseHelper extends SQLiteOpenHelper{
+             loadBooleanSetting(stmt, LineageSettings.System.SYSTEM_PROFILES_ENABLED,
+                     R.bool.def_profiles_enabled);
+ 
++            loadBooleanSetting(stmt, LineageSettings.System.LOCKSCREEN_ROTATION,
++                    R.bool.def_lockscreen_rotation);
++
+             loadIntegerSetting(stmt, LineageSettings.System.ENABLE_FORWARD_LOOKUP,
+                     R.integer.def_forward_lookup);
+ 

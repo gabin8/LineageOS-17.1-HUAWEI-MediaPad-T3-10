@@ -1,0 +1,35 @@
+From 29f5e1dbf9d983c31dd956ab3ad767cddc3651da Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:23:56 +0200
+Subject: [PATCH 04/17] AGS-W09: XiaomiDoze private APIs; prima is built in
+ (skip its DLKM makefile)
+
+---
+ board/wlan.mk   | 4 ++++
+ doze/Android.mk | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/board/wlan.mk b/board/wlan.mk
+index 3675ded..0fc11d5 100644
+--- a/board/wlan.mk
++++ b/board/wlan.mk
+@@ -20,3 +20,7 @@ WIFI_DRIVER_STATE_CTRL_PARAM := "/proc/wifi_built_in/wifi_start"
+ WIFI_DRIVER_STATE_ON := "start"
+ WIFI_DRIVER_STATE_OFF := "stop"
+ WIFI_DRIVER_OPERSTATE_PATH := "/sys/class/net/wlan0/operstate"
++
++# prima is built into the kernel (/proc/wifi_built_in): skip prima's DLKM makefile, which
++# needs device/qcom/common/dlkm (no lineage-17.1 branch)
++CONFIG_HUAWEI_ANDROID_WIFI_BUILTIN := true
+diff --git a/doze/Android.mk b/doze/Android.mk
+index 8667683..5400d4f 100644
+--- a/doze/Android.mk
++++ b/doze/Android.mk
+@@ -6,6 +6,7 @@ LOCAL_MODULE_TAGS := optional
+ LOCAL_SRC_FILES := $(call all-java-files-under, src)
+ 
+ LOCAL_PACKAGE_NAME := XiaomiDoze
++LOCAL_PRIVATE_PLATFORM_APIS := true
+ LOCAL_CERTIFICATE := platform
+ LOCAL_PRIVILEGED_MODULE := true
+ 

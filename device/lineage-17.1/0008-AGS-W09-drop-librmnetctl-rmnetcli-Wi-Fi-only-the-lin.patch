@@ -1,0 +1,22 @@
+From a672333cf0cc0cbc65942a03e15a7553899c44f4 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:29:36 +0200
+Subject: [PATCH 08/17] AGS-W09: drop librmnetctl/rmnetcli (Wi-Fi only; the
+ lineage-17.1 cli does not build)
+
+---
+ product/radio.mk | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/product/radio.mk b/product/radio.mk
+index 679a269..35bf55e 100644
+--- a/product/radio.mk
++++ b/product/radio.mk
+@@ -17,7 +17,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
+ # Radio
+ PRODUCT_PACKAGES += \
+     libcnefeatureconfig \
+-    librmnetctl \
+     libxml2
+ 
+ # Net

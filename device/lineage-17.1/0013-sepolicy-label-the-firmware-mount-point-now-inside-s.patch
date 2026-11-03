@@ -1,0 +1,19 @@
+From 192dbd26529ba1bc76b5a443f008843b678d1923 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 19:41:13 +0200
+Subject: [PATCH 13/17] sepolicy: label the /firmware mount point (now inside
+ system.img)
+
+---
+ sepolicy/file_contexts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sepolicy/file_contexts b/sepolicy/file_contexts
+index 1d8bdee..43130b3 100644
+--- a/sepolicy/file_contexts
++++ b/sepolicy/file_contexts
+@@ -37,3 +37,4 @@
+ # Q builds system.img with the root dir staged in; non-split builds still install the build-time
+ # /file_contexts.bin there, and Q dropped its label (Oreo had this one).
+ /file_contexts\.bin                         u:object_r:file_contexts_file:s0
++/firmware                                   u:object_r:firmware_file:s0

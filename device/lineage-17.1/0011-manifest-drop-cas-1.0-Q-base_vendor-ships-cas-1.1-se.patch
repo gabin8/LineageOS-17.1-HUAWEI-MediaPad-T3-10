@@ -1,0 +1,30 @@
+From 7a621c393c35c3385c98f2015b6e19e9660aea40 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 19:32:38 +0200
+Subject: [PATCH 11/17] manifest: drop cas@1.0, Q base_vendor ships
+ cas@1.1-service with its own VINTF fragment
+
+---
+ manifest.xml | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/manifest.xml b/manifest.xml
+index 953cf61..e559a34 100644
+--- a/manifest.xml
++++ b/manifest.xml
+@@ -54,15 +54,6 @@ included.
+             <instance>legacy/0</instance>
+         </interface>
+     </hal>
+-    <hal format="hidl">
+-        <name>android.hardware.cas</name>
+-        <transport>hwbinder</transport>
+-        <version>1.0</version>
+-        <interface>
+-            <name>IMediaCasService</name>
+-            <instance>default</instance>
+-        </interface>
+-    </hal>
+     <hal format="hidl">
+         <name>android.hardware.configstore</name>
+         <transport>hwbinder</transport>

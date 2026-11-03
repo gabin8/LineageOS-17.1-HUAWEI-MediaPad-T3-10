@@ -1,0 +1,22 @@
+From 7685a9c0822f37f9e79b2adb04b305bba4bf3a9e Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 23:11:05 +0200
+Subject: [PATCH 17/17] overlay: lock screen rotation on by default (needs the
+ lineage-sdk def_lockscreen_rotation patch)
+
+---
+ .../packages/LineageSettingsProvider/res/values/defaults.xml | 5 +++++
+ 1 file changed, 5 insertions(+)
+ create mode 100644 overlay-lineage/lineage-sdk/packages/LineageSettingsProvider/res/values/defaults.xml
+
+diff --git a/overlay-lineage/lineage-sdk/packages/LineageSettingsProvider/res/values/defaults.xml b/overlay-lineage/lineage-sdk/packages/LineageSettingsProvider/res/values/defaults.xml
+new file mode 100644
+index 0000000..d9e6d52
+--- /dev/null
++++ b/overlay-lineage/lineage-sdk/packages/LineageSettingsProvider/res/values/defaults.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- AGS-W09 is a landscape tablet: rotate the lock screen like stock (15.1 fix 41). -->
++<resources>
++    <bool name="def_lockscreen_rotation">true</bool>
++</resources>

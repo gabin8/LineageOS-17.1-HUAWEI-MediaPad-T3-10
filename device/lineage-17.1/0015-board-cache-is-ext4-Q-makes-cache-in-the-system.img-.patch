@@ -1,0 +1,23 @@
+From 6ff98f0e76019f73956e73f813b61739a99485b7 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 22:13:28 +0200
+Subject: [PATCH 15/17] board: cache is ext4 (Q makes /cache in the system.img
+ root a dir only when this is set; else a /data/cache symlink and mount_all
+ fails)
+
+---
+ board/filesystem.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/filesystem.mk b/board/filesystem.mk
+index 00f48cc..e41aa67 100644
+--- a/board/filesystem.mk
++++ b/board/filesystem.mk
+@@ -1,6 +1,7 @@
+ # Partitions
+ BOARD_BOOTIMAGE_PARTITION_SIZE     := 83886080
+ BOARD_CACHEIMAGE_PARTITION_SIZE    := 268435456
++BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE  := ext4
+ BOARD_RECOVERYIMAGE_PARTITION_SIZE := 83886080
+ BOARD_SYSTEMIMAGE_PARTITION_SIZE   := 3154116608
+ BOARD_USERDATAIMAGE_PARTITION_SIZE := 10221501952

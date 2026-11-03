@@ -69,6 +69,8 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
 mkdir -p /vendor/etc/init-disabled
+W=/vendor/etc/init/android.hardware.wifi@1.0-service.rc   # Q HAL sets wlan0 up itself
+grep -q '^    capabilities NET_ADMIN' $W || sed -i 's/^    class hal$/    class hal\n    capabilities NET_ADMIN NET_RAW SYS_MODULE/' $W
 R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 [ ! -e $R ] || mv $R /vendor/etc/init-disabled/
 P=/vendor/default.prop

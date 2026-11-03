@@ -1,0 +1,17 @@
+0001-AGS-W09-forward-port-to-lineage-17.1-Android-10.patch
+0002-AGS-W09-2nd-arch-variant-armv8-a-required-on-Q-for-c.patch
+0003-AGS-W09-libinit_msm8917-as-a-Soong-module-Q-libinit-.patch
+0004-AGS-W09-XiaomiDoze-private-APIs-prima-is-built-in-sk.patch
+0005-AGS-W09-drop-the-vendor-hidl-base-manager-stubs-clas.patch
+0006-AGS-W09-drop-the-QCamera2-source-HAL-the-Oreo-camera.patch
+0007-AGS-W09-BUILD_BROKEN_DUP_RULES-for-the-stage-A-blob-.patch
+0008-AGS-W09-drop-librmnetctl-rmnetcli-Wi-Fi-only-the-lin.patch
+0009-AGS-W09-sepolicy-drop-app.te-qemu_hw_mainkeys_prop-n.patch
+0010-AGS-W09-config.fs-OEM-AIDs-as-AID_VENDOR_-required-o.patch
+0011-manifest-drop-cas-1.0-Q-base_vendor-ships-cas-1.1-se.patch
+0012-sepolicy-label-file_contexts.bin-Q-stages-the-root-d.patch
+0013-sepolicy-label-the-firmware-mount-point-now-inside-s.patch
+0014-rootdir-fstab.qcom-into-the-boot-ramdisk-too-Q-first.patch
+0015-board-cache-is-ext4-Q-makes-cache-in-the-system.img-.patch
+0016-wifi-wpa_supplicant-on-the-Android-10-config-paths-d.patch
+0017-overlay-lock-screen-rotation-on-by-default-needs-the.patch

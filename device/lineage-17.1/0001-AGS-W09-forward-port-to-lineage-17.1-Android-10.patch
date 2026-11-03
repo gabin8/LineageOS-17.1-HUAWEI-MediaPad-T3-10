@@ -1,0 +1,2921 @@
+From 3eb0542811dce9a2c364b607f3272344c8f12d4e Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 16:17:24 +0200
+Subject: [PATCH 01/17] AGS-W09: forward-port to lineage-17.1 (Android 10)
+
+- AndroidProducts.mk + lineage_ags_w09.mk; own Android 10 fingerprint
+- flattened APEX, qcom sepolicy-legacy-um, system.prop for system-side props
+- boot ramdisk: first-stage fstab (system, vendor), the 15.1 ramdisk init.qcom.rc
+  (+ restricted cpuset), ueventd.qcom.rc and WiFi bring-up scripts
+- /product = /system/product with the agassi ACDB (recording boost applied)
+- drop the vendor-only rc files, SDCLANG and the device/qcom/common dependency
+---
+ AndroidProducts.mk               |    7 +
+ board/android10.mk               |   16 +
+ board/kernel.mk                  |    1 -
+ board/sepolicy.mk                |    3 +-
+ device.mk                        |   12 +-
+ lineage.dependencies             |   16 +-
+ lineage.mk => lineage_ags_w09.mk |    6 +-
+ product/audio.mk                 |    8 +
+ product/init.mk                  |   11 +-
+ rootdir/Android.mk               |  126 +--
+ rootdir/fstab.qcom               |   38 +-
+ rootdir/init.qcom.power.rc       |  104 --
+ rootdir/init.qcom.rc             |  456 +++------
+ rootdir/init.qcom.usb.rc         | 1617 ------------------------------
+ rootdir/init.target.rc           |  179 ----
+ rootdir/init.wifi.sh             |   15 +
+ rootdir/init.wifi_mac.sh         |   60 ++
+ system.prop                      |    8 +
+ 18 files changed, 289 insertions(+), 2394 deletions(-)
+ create mode 100644 AndroidProducts.mk
+ create mode 100644 board/android10.mk
+ rename lineage.mk => lineage_ags_w09.mk (87%)
+ delete mode 100644 rootdir/init.qcom.power.rc
+ delete mode 100644 rootdir/init.qcom.usb.rc
+ delete mode 100644 rootdir/init.target.rc
+ create mode 100755 rootdir/init.wifi.sh
+ create mode 100755 rootdir/init.wifi_mac.sh
+ create mode 100644 system.prop
+
+diff --git a/AndroidProducts.mk b/AndroidProducts.mk
+new file mode 100644
+index 0000000..0b138ea
+--- /dev/null
++++ b/AndroidProducts.mk
+@@ -0,0 +1,7 @@
++PRODUCT_MAKEFILES := \
++    $(LOCAL_DIR)/lineage_ags_w09.mk
++
++COMMON_LUNCH_CHOICES := \
++    lineage_ags_w09-user \
++    lineage_ags_w09-userdebug \
++    lineage_ags_w09-eng
+diff --git a/board/android10.mk b/board/android10.mk
+new file mode 100644
+index 0000000..05f91e9
+--- /dev/null
++++ b/board/android10.mk
+@@ -0,0 +1,16 @@
++# Android 10 (lineage-17.1), legacy non-Treble build: no VNDK, monolithic /sepolicy in the
++# ramdisk, legacy linker config. The prebuilt vendor is an EMUI 8 (Android 8.0) one.
++
++# APEX modules as flat directories (no loop-mounted images on this 3.18 kernel)
++TARGET_FLATTEN_APEX := true
++
++# Mount points created in the boot ramdisk for the second-stage mount_all
++BOARD_ROOT_EXTRA_FOLDERS := firmware persist
++
++# Device props that must reach /system/build.prop (the vendor image is not rebuilt in
++# stage A, and PRODUCT_PROPERTY_OVERRIDES land in /vendor/build.prop on this build)
++TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
++
++# Bring-up only (Phase 1-3, permissive): let the 15.1 device policy compile against Q's
++# neverallows. Only honoured on userdebug/eng. Remove for SELinux enforcing (Phase 4).
++SELINUX_IGNORE_NEVERALLOWS := true
+diff --git a/board/kernel.mk b/board/kernel.mk
+index 5191fa8..5b616f5 100644
+--- a/board/kernel.mk
++++ b/board/kernel.mk
+@@ -6,7 +6,6 @@ BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
+ BOARD_KERNEL_PAGESIZE :=  2048
+ BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x01000000 --tags_offset 0x00000100
+ TARGET_KERNEL_SOURCE := kernel/huawei/ags_w09
+-TARGET_USE_SDCLANG := true
+ 
+ #TARGET_PREBUILT_KERNEL := device/huawei/ags_w09/kernel/zImage
+ #INSTALLED_KERNEL_HEADERS := device/huawei/ags_w09/kernel/headers
+diff --git a/board/sepolicy.mk b/board/sepolicy.mk
+index 225ecd5..f7be397 100644
+--- a/board/sepolicy.mk
++++ b/board/sepolicy.mk
+@@ -1,5 +1,4 @@
+-# SELinux
+ BOARD_SEPOLICY_DIRS += \
+     $(DEVICE_PATH)/sepolicy
+ 
+-include device/qcom/sepolicy/sepolicy.mk
++include device/qcom/sepolicy-legacy-um/sepolicy.mk
+diff --git a/device.mk b/device.mk
+index 991d77a..a608eb8 100644
+--- a/device.mk
++++ b/device.mk
+@@ -34,10 +34,6 @@ PRODUCT_CHARACTERISTICS := tablet
+ PRODUCT_PACKAGES += \
+     lights.msm8937
+ 
+-# Wi-Fi only
+-PRODUCT_PROPERTY_OVERRIDES += \
+-    ro.radio.noril=true
+-
+ # Carrier config
+ PRODUCT_PACKAGES += \
+     CarrierConfig
+@@ -46,13 +42,7 @@ PRODUCT_PACKAGES += \
+ PRODUCT_COPY_FILES += \
+     $(DEVICE_PATH)/configs/wifi/WCNSS_qcom_cfg_huawei.ini:$(TARGET_COPY_OUT_SYSTEM)/etc/wifi/WCNSS_qcom_cfg.ini
+ 
+-# Logging
+-PRODUCT_PROPERTY_OVERRIDES += \
+-    ro.logd.kernel=false
+-
+-# Marketing name
+-PRODUCT_PROPERTY_OVERRIDES += \
+-    ro.config.marketing_name=HUAWEI MediaPad T3 10
++# Wi-Fi only (ro.radio.noril), logd and marketing name: see system.prop
+ 
+ # Shims
+ PRODUCT_PACKAGES += \
+diff --git a/lineage.dependencies b/lineage.dependencies
+index b37da0f..2ae173f 100644
+--- a/lineage.dependencies
++++ b/lineage.dependencies
+@@ -1,18 +1,14 @@
+ [
+  {
+-   "repository": "android_device_qcom_common",
+-   "target_path": "device/qcom/common"
++  "repository": "clienthax/android_kernel_huawei_AGS-W09",
++  "target_path": "kernel/huawei/ags_w09"
+  },
+  {
+-   "repository": "clienthax/android_kernel_huawei_AGS-W09",
+-   "target_path": "kernel/huawei/ags_w09"
++  "repository": "clienthax/qcom_opensource_wlan_prima",
++  "target_path": "kernel/huawei/ags_w09/vendor/qcom/opensource/wlan/prima"
+  },
+  {
+-   "repository": "clienthax/qcom_opensource_wlan_prima",
+-   "target_path": "kernel/huawei/ags_w09/vendor/qcom/opensource/wlan/prima"
+- },
+- {
+-   "repository": "android_packages_resources_devicesettings",
+-   "target_path": "packages/resources/devicesettings"
++  "repository": "android_packages_resources_devicesettings",
++  "target_path": "packages/resources/devicesettings"
+  }
+ ]
+diff --git a/lineage.mk b/lineage_ags_w09.mk
+similarity index 87%
+rename from lineage.mk
+rename to lineage_ags_w09.mk
+index b4120fb..41ac233 100644
+--- a/lineage.mk
++++ b/lineage_ags_w09.mk
+@@ -35,10 +35,10 @@ PRODUCT_GMS_CLIENTID_BASE := android-ags-w09
+ 
+ TARGET_VENDOR_PRODUCT_NAME := ags_w09
+ 
++# Stock device/product names; the build gets its own Android 10 fingerprint (handoff 5,
++# decision 5), set identically on vendor so Build.isBuildConsistent() passes.
+ PRODUCT_BUILD_PROP_OVERRIDES += \
+     TARGET_DEVICE="HWAGS-Q" \
+-    PRODUCT_NAME="AGSEEA" \
+-    PRIVATE_BUILD_DESC="AGS-W09-user 8.0.0 HUAWEIAGS-W09 150(C431) release-keys"
++    PRODUCT_NAME="AGSEEA"
+ 
+ # Set BUILD_FINGERPRINT variable to be picked up by both system and vendor build.prop
+-BUILD_FINGERPRINT := "HUAWEI/AGSEEA/HWAGS-Q:8.0.0/HUAWEIAGS-W09/150(C431):user/release-keys"
+diff --git a/product/audio.mk b/product/audio.mk
+index e3d27aa..8a9e7ae 100644
+--- a/product/audio.mk
++++ b/product/audio.mk
+@@ -77,3 +77,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
+     vendor.voice.record.conc.disabled=false \
+     vendor.voice.voip.conc.disabled=true \
+     vendor.voice.conc.fallbackpath=deep-buffer
++
++# Huawei agassi ACDB calibration for the audio HAL (libacdbloader reads
++# /product/etc/acdbdata/agassi). On Android 10 /product is /system/product, so the files ship
++# in system instead of mounting Huawei's product partition (handoff 5, decision 4). Extracted
++# from the stock product image with the +6 dB recording boost already applied
++# (vendor/apply-recording-boost.sh, 15.1 fix 61).
++PRODUCT_COPY_FILES += \
++    $(call find-copy-subdir-files,*,vendor/huawei/ags_w09/proprietary/product/etc/acdbdata/agassi,$(TARGET_COPY_OUT_PRODUCT)/etc/acdbdata/agassi)
+diff --git a/product/init.mk b/product/init.mk
+index a326485..0dcb1fc 100644
+--- a/product/init.mk
++++ b/product/init.mk
+@@ -1,13 +1,12 @@
+-# Init scripts
++# Boot ramdisk (see rootdir/Android.mk)
+ PRODUCT_PACKAGES += \
+     fstab.qcom \
+     init.qcom.rc \
+-    init.target.rc \
+-    init.qcom.power.rc \
+-    init.qcom.usb.rc \
+-    init.recovery.qcom.rc \
+-    ueventd.qcom.rc
++    ueventd.qcom.rc \
++    init.wifi.sh \
++    init.wifi_mac.sh
+ 
++# Vendor helper scripts
+ PRODUCT_PACKAGES += \
+     init.qcom.sh \
+     init.qcom.baseband.sh \
+diff --git a/rootdir/Android.mk b/rootdir/Android.mk
+index 97c122b..8d65abd 100644
+--- a/rootdir/Android.mk
++++ b/rootdir/Android.mk
+@@ -1,92 +1,38 @@
+ LOCAL_PATH := $(call my-dir)
+ 
+-# Init scripts
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := fstab.qcom
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := fstab.qcom
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.power.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.power.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init/hw
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init/hw
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.target.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.target.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init/hw
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.sh
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.sh
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_EXECUTABLES)
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.baseband.sh
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.baseband.sh
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_EXECUTABLES)
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.graphics.sh
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.graphics.sh
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_EXECUTABLES)
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.usb.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.usb.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init/hw
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.qcom.usb.sh
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.usb.sh
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_EXECUTABLES)
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := init.recovery.qcom.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := init.qcom.power.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init/hw
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := ueventd.qcom.rc
+-LOCAL_MODULE_STEM  := ueventd.rc
+-LOCAL_MODULE_TAGS  := optional eng
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := ueventd.qcom.rc
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)
+-include $(BUILD_PREBUILT)
++# Android 10 (legacy, non-Treble) layout for the AGS-W09:
++#  - boot ramdisk: fstab.qcom (first-stage mount of system + vendor), init.qcom.rc (all device
++#    services; the prebuilt EMUI vendor's own /vendor/etc/init/hw/init.qcom.rc is neutralised),
++#    ueventd.qcom.rc (read last by ueventd, so it overrides /vendor/ueventd.rc), WiFi bring-up.
++#  - /vendor/bin: the Qualcomm helper scripts (vendor image only).
++
++define ags_w09_root_prebuilt
++include $$(CLEAR_VARS)
++LOCAL_MODULE       := $(1)
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := $(1)
++LOCAL_MODULE_PATH  := $$(TARGET_ROOT_OUT)
++include $$(BUILD_PREBUILT)
++endef
++
++$(eval $(call ags_w09_root_prebuilt,fstab.qcom))
++$(eval $(call ags_w09_root_prebuilt,init.qcom.rc))
++$(eval $(call ags_w09_root_prebuilt,ueventd.qcom.rc))
++$(eval $(call ags_w09_root_prebuilt,init.wifi.sh))
++$(eval $(call ags_w09_root_prebuilt,init.wifi_mac.sh))
++
++define ags_w09_vendor_script
++include $$(CLEAR_VARS)
++LOCAL_MODULE       := $(1)
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := $(1)
++LOCAL_MODULE_PATH  := $$(TARGET_OUT_VENDOR_EXECUTABLES)
++include $$(BUILD_PREBUILT)
++endef
++
++$(eval $(call ags_w09_vendor_script,init.qcom.sh))
++$(eval $(call ags_w09_vendor_script,init.qcom.baseband.sh))
++$(eval $(call ags_w09_vendor_script,init.qcom.graphics.sh))
++$(eval $(call ags_w09_vendor_script,init.qcom.usb.sh))
+diff --git a/rootdir/fstab.qcom b/rootdir/fstab.qcom
+index ca389cd..fad94f5 100644
+--- a/rootdir/fstab.qcom
++++ b/rootdir/fstab.qcom
+@@ -1,27 +1,11 @@
+-# Android fstab file.
+-# The filesystem that contains the filesystem e2fsck binary (typically /system) cannot
+-# specify 'check', and must come before any filesystems that do specify 'check'
+-
+-# NOTE: /system and /vendor (/cust mounted as /vendor) partitions are now early-mounted and the fstab entry is specified in device tree (duplicated below for recovery image purposes only):
+-#       /proc/device-tree/firmware/android/fstab/system
+-#       /proc/device-tree/firmware/android/fstab/vendor
+-
+-#<src>                                       <mnt_point>        <type>  <mnt_flags and options>                             <fs_mgr_flags>
+-/dev/block/bootdevice/by-name/boot           /boot              emmc    defaults                                            recoveryonly
+-/dev/block/bootdevice/by-name/recovery       /recovery          emmc    defaults                                            recoveryonly
+-
+-/dev/block/bootdevice/by-name/userdata       /data              f2fs    rw,nosuid,nodev,noatime                             wait,formattable,check,encryptable=footer
+-/dev/block/bootdevice/by-name/system         /system            ext4    ro,barrier=1                                        wait,recoveryonly
+-/dev/block/bootdevice/by-name/cust           /vendor            ext4    ro,barrier=1                                        wait,recoveryonly
+-/dev/block/bootdevice/by-name/cache          /cache             ext4    nosuid,nodev,noatime                                wait,formattable,check
+-/dev/block/bootdevice/by-name/persist        /persist           ext4    nosuid,nodev                                        wait,check
+-/dev/block/bootdevice/by-name/dsp            /dsp               ext4    ro,nosuid,nodev                                     wait
+-/dev/block/bootdevice/by-name/modem          /firmware          vfat    ro,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337 wait
+-/dev/block/bootdevice/by-name/misc           /misc              emmc    defaults                                            defaults
+-/dev/block/bootdevice/by-name/config         /frp               emmc    defaults                                            defaults
+-/dev/block/bootdevice/by-name/log            /log         vfat    nosuid,nodev,uid=1000,gid=1007,fmask=0007,dmask=0007         wait,check,continue
+-
+-/devices/soc/7864900.sdhci/mmc_host*         auto               auto    nosuid,nodev                                        wait,voldmanaged=sdcard1:auto,noemulatedsd,encryptable=footer
+-/devices/soc/78db000.usb/msm_hsusb_host*     auto               auto    nosuid,nodev                                        wait,voldmanaged=usbotg:auto
+-/dev/block/zram0                             none               swap    defaults                                            zramsize=1073741824,max_comp_streams=4
+-
++# AGS-W09 ramdisk fstab (Android 10). First-stage init mounts the first_stage_mount entries
++# (system, vendor); the ramdisk init.qcom.rc runs mount_all on it for the rest, which skips
++# entries that are already mounted. Huawei's product partition is NOT mounted: /product is
++# /system/product on this build.
++#<src>                                                  <mnt_point> <type> <mnt_flags and options>              <fs_mgr_flags>
++/dev/block/platform/soc/7824900.sdhci/by-name/system     /system     ext4   ro,barrier=1                           wait,first_stage_mount
++/dev/block/platform/soc/7824900.sdhci/by-name/vendor     /vendor     ext4   ro,barrier=1                           wait,first_stage_mount
++/dev/block/platform/soc/7824900.sdhci/by-name/cache      /cache      ext4   nosuid,nodev,noatime                   wait,formattable
++/dev/block/platform/soc/7824900.sdhci/by-name/userdata   /data       f2fs   rw,nosuid,nodev,noatime                wait,formattable,encryptable=footer
++/dev/block/platform/soc/7824900.sdhci/by-name/modem      /firmware   vfat   ro,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337,context=u:object_r:firmware_file:s0  wait
++/dev/block/platform/soc/7824900.sdhci/by-name/persist    /persist    ext4   nosuid,nodev,noatime                   wait
+diff --git a/rootdir/init.qcom.power.rc b/rootdir/init.qcom.power.rc
+deleted file mode 100644
+index 6fca3ee..0000000
+--- a/rootdir/init.qcom.power.rc
++++ /dev/null
+@@ -1,104 +0,0 @@
+-on boot
+-    # Set RPS mask
+-    write /sys/class/net/rmnet0/queues/rx-0/rps_cpus 2
+-
+-on enable-low-power
+-    # HMP scheduler settings
+-    write /proc/sys/kernel/sched_window_stats_policy 3
+-    write /proc/sys/kernel/sched_ravg_hist_size 3
+-    write /proc/sys/kernel/sched_ravg_window 20000000
+-    write /proc/sys/kernel/sched_restrict_tasks_spread 1
+-
+-    #disable sched_boost in 8917
+-    write /proc/sys/kernel/sched_boost 0
+-
+-    # HMP Task packing settings
+-    write /proc/sys/kernel/sched_small_task 20
+-    write /sys/devices/system/cpu/cpu0/sched_mostly_idle_load 30
+-    write /sys/devices/system/cpu/cpu1/sched_mostly_idle_load 30
+-    write /sys/devices/system/cpu/cpu2/sched_mostly_idle_load 30
+-    write /sys/devices/system/cpu/cpu3/sched_mostly_idle_load 30
+-
+-    write /sys/devices/system/cpu/cpu0/sched_mostly_idle_nr_run 3
+-    write /sys/devices/system/cpu/cpu1/sched_mostly_idle_nr_run 3
+-    write /sys/devices/system/cpu/cpu2/sched_mostly_idle_nr_run 3
+-    write /sys/devices/system/cpu/cpu3/sched_mostly_idle_nr_run 3
+-
+-    write /sys/devices/system/cpu/cpu0/sched_prefer_idle 0
+-    write /sys/devices/system/cpu/cpu1/sched_prefer_idle 0
+-    write /sys/devices/system/cpu/cpu2/sched_prefer_idle 0
+-    write /sys/devices/system/cpu/cpu3/sched_prefer_idle 0
+-
+-    write /sys/class/devfreq/soc:qcom,cpubw/governor bw_hwmon
+-    write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/io_percent 20
+-    write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/guard_band_mbps 30
+-
+-    write /sys/class/devfreq/soc:qcom,gpubw/bw_hwmon/io_percent 40
+-
+-    # Disable thermal core_control to update interactive gov settings
+-    write /sys/module/msm_thermal/core_control/enabled 0
+-
+-    # Enable governor
+-    write /sys/devices/system/cpu/cpu0/online 1
+-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
+-    write /sys/devices/system/cpu/cpufreq/interactive/above_hispeed_delay "19000 1094400:39000"
+-    write /sys/devices/system/cpu/cpufreq/interactive/go_hispeed_load 85
+-    write /sys/devices/system/cpu/cpufreq/interactive/timer_rate 20000
+-    write /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq 1094400
+-    write /sys/devices/system/cpu/cpufreq/interactive/io_is_busy 0
+-    write /sys/devices/system/cpu/cpufreq/interactive/target_loads "1 960000:85 1094400:90"
+-    write /sys/devices/system/cpu/cpufreq/interactive/min_sample_time 40000
+-    write /sys/devices/system/cpu/cpufreq/interactive/sampling_down_factor 40000
+-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 960000
+-
+-    # Re-enable thermal core_control now
+-    write /sys/module/msm_thermal/core_control/enabled 1
+-
+-    # Disable L2-GDHS low power modes
+-    write /sys/module/lpm_levels/perf/perf-l2-gdhs/idle_enabled N
+-    write /sys/module/lpm_levels/perf/perf-l2-gdhs/suspend_enabled N
+-
+-    # Bring all cores online
+-    write /sys/devices/system/cpu/cpu1/online 1
+-    write /sys/devices/system/cpu/cpu2/online 1
+-    write /sys/devices/system/cpu/cpu3/online 1
+-
+-    # Enable low power modes
+-    write /sys/module/lpm_levels/parameters/sleep_disabled 0
+-
+-    # Enable sched guided freq control
+-    write /sys/devices/system/cpu/cpufreq/interactive/use_sched_load 1
+-    write /sys/devices/system/cpu/cpufreq/interactive/use_migration_notif 1
+-    write /proc/sys/kernel/sched_freq_inc_notify 50000
+-    write /proc/sys/kernel/sched_freq_dec_notify 50000
+-
+-    # Enable dynamic clock gating
+-    write /sys/module/lpm_levels/lpm_workarounds/dynamic_clock_gating 1
+-
+-    # Enable timer migration to little cluster
+-    write /proc/sys/kernel/power_aware_timer_migration 1
+-
+-    # Set per_process_reclaim tuning parameters
+-    write /sys/module/process_reclaim/parameters/enable_process_reclaim 1
+-    write /sys/module/process_reclaim/parameters/pressure_max 70
+-    write /sys/module/process_reclaim/parameters/swap_opt_eff 30
+-    write /sys/module/process_reclaim/parameters/pressure_min 50
+-    write /sys/module/process_reclaim/parameters/per_swap_size 512
+-
+-    # Set lowmemorykiller tuning parameters
+-    write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 1
+-    write /sys/module/lowmemorykiller/parameters/minfree "15360,19200,23040,26880,34415,43737"
+-    write /sys/module/lowmemorykiller/parameters/vmpressure_file_min 53059s
+-
+-    write /sys/block/mmcblk0/bdi/read_ahead_kb 128
+-    write /sys/block/mmcblk0/queue/read_ahead_kb 128
+-    write /sys/block/dm-0/queue/read_ahead_kb 128
+-    write /sys/block/dm-1/queue/read_ahead_kb 128
+-    write /sys/block/mmcblk0rpmb/bdi/read_ahead_kb 128
+-    write /sys/block/mmcblk0rpmb/queue/read_ahead_kb 128
+-
+-on property:sys.boot_completed=1
+-    trigger enable-low-power
+-
+-on property:init.svc.recovery=running
+-    trigger enable-low-power
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index 31895bc..618a4a7 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -1,391 +1,159 @@
+-# Copyright (c) 2009-2012, 2014-2017, The Linux Foundation. All rights reserved.
+-#
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are met:
+-#     * Redistributions of source code must retain the above copyright
+-#       notice, this list of conditions and the following disclaimer.
+-#     * Redistributions in binary form must reproduce the above copyright
+-#       notice, this list of conditions and the following disclaimer in the
+-#       documentation and/or other materials provided with the distribution.
+-#     * Neither the name of The Linux Foundation nor
+-#       the names of its contributors may be used to endorse or promote
+-#       products derived from this software without specific prior written
+-#       permission.
+-#
+-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-# IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+-# NON-INFRINGEMENT ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-#
+-
+-import /vendor/etc/init/hw/init.qcom.power.rc
+-import /vendor/etc/init/hw/init.qcom.usb.rc
+-import /vendor/etc/init/hw/init.target.rc
+-
+ on early-init
+-    mount debugfs debugfs /sys/kernel/debug
+-    chmod 0755 /sys/kernel/debug
+-    chown root system /dev/kmsg
+-    chmod 0620 /dev/kmsg
+-
+-on init
+-    # Set permissions for persist partition
+-    mkdir /persist 0771 root system
+-
+-    # Support legacy path
+-    symlink /sdcard /storage/sdcard0
+-
+-    write /sys/module/qpnp_rtc/parameters/poweron_alarm 1
+-
+-    start graphics-sh
+-
+-on post-fs
+-    chmod 0755 /sys/kernel/debug/tracing
+-
+-on early-boot
+-    # set RLIMIT_MEMLOCK to 64MB
+-    setrlimit 8 67108864 67108864
+-    # Allow subsystem (modem etc) debugging
+-    write /sys/kernel/boot_adsp/boot 1
+-    write /sys/kernel/boot_slpi/boot 1
+-    chown root audio /sys/kernel/boot_adsp/boot
+-
+-on boot
+-    chown system system /sys/module/radio_iris_transport/parameters/fmsmd_set
+-    chmod 0660 /sys/module/radio_iris_transport/parameters/fmsmd_set
+-
+-    # Create QMUX deamon socket area
+-    mkdir /dev/socket/qmux_radio 0770 radio radio
+-    chmod 2770 /dev/socket/qmux_radio
+-    mkdir /dev/socket/qmux_audio 0770 media audio
+-    chmod 2770 /dev/socket/qmux_audio
+-    mkdir /dev/socket/qmux_bluetooth 0770 bluetooth bluetooth
+-    chmod 2770 /dev/socket/qmux_bluetooth
+-    mkdir /dev/socket/qmux_gps 0770 gps gps
+-    chmod 2770 /dev/socket/qmux_gps
+-
+-    mkdir /persist/display 0770 system graphics
+-    mkdir /persist/drm 0770 system system
+-    mkdir /persist/bluetooth 0770 bluetooth bluetooth
+-    mkdir /persist/misc 0770 system system
+-    mkdir /persist/alarm 0770 system system
+-    mkdir /persist/time 0770 system system
+-
+-    # Create NETMGR daemon socket area
+-    mkdir /dev/socket/netmgr 0750 radio radio
+-
+-    # Prevent permission denied error for telephony
+-    chmod 0644 /proc/cmdline
+-
+-    # enable camera read sensors data
+-    setprop persist.camera.gyro.disable 0
+-
+-    # Remove SUID bit for iproute2 ip tool
+-    chmod 0755 /system/bin/ip
+-
+-    setprop net.tcp.2g_init_rwnd 10
+-
+-    # Assign TCP buffer thresholds to be ceiling value of technology maximums
+-    # Increased technology maximums should be reflected here.
+-    write /proc/sys/net/core/rmem_max  8388608
+-    write /proc/sys/net/core/wmem_max  8388608
+-
+-    # To prevent out of order acknowledgements from making
+-    # connection tracking to treat them as not belonging to
+-    # the connection they belong to.
+-    # Otherwise, a weird issue happens in which some long
+-    # connections on high-throughput links get dropped when
+-    # an ack packet comes out of order
+-    write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
+-
+-    # Allow access to dload sysfs node
+-    chown root system /sys/kernel/dload/emmc_dload
+-    chmod 0660 /sys/kernel/dload/emmc_dload
+-
+-    # IR blaster
+-    chown root system /sys/class/leds/infrared/transmit
+-    chown root system /sys/class/leds/infrared/brightness
++    write /proc/sys/kernel/print-fatal-signals 1
++on fs
++    mount_all /fstab.qcom
++    # FunctionFS backing for adb: this kernel's android_usb adb function is ffs-backed;
++    # without a mounted functionfs the adb descriptor is empty -> host "error -32". (mirrors recovery)
++    write /sys/class/android_usb/android0/f_ffs/aliases adb
++    mkdir /dev/usb-ffs 0770 shell shell
++    mkdir /dev/usb-ffs/adb 0770 shell shell
++    mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000
++    # Device has 4 cores (0-3). init.rc copies the (initially empty) root cpuset into the
++    # child cpusets, leaving cpus="" -> system_server setThreadGroupAndCpuset() throws and
++    # crash-loops (DisplayManagerService). Populate them explicitly.
++    write /dev/cpuset/foreground/cpus 0-3
++    write /dev/cpuset/foreground/mems 0
++    write /dev/cpuset/background/cpus 0-3
++    write /dev/cpuset/background/mems 0
++    write /dev/cpuset/system-background/cpus 0-3
++    write /dev/cpuset/system-background/mems 0
++    write /dev/cpuset/top-app/cpus 0-3
++    write /dev/cpuset/top-app/mems 0
++    # Android 10 adds the restricted cpuset
++    write /dev/cpuset/restricted/cpus 0-3
++    write /dev/cpuset/restricted/mems 0
++
++# Generic light@2.0 HAL (replaces aw2013 variant which opens a nonexistent /sys/class/leds/blue)
++service light-hal-2-0 /vendor/bin/hw/android.hardware.light@2.0-service
++    class hal
++    user system
++    group system
+ 
+-    # Wifi firmware reload path
+-    chown wifi wifi /sys/module/wlan/parameters/fwpath
++service wifi-bringup /system/bin/sh /init.wifi.sh
++    class late_start
++    user root
++    group root system wifi
++    seclabel u:r:wifi_bringup:s0
++    oneshot
+ 
+-# msm specific files that need to be created on /data
+ on post-fs-data
+-    mkdir /data/vendor/misc 01771 system system
+-
+-    # Create directory used by display clients
+-    mkdir /data/vendor/display 0770 system graphics
+-
+-    # Create directory used by media clients
+-    mkdir /data/vendor/media 0770 mediacodec media
+-
+-    #Create directories for Fingerprint
+-    mkdir /data/misc/stargate 0770 system system
+-    mkdir /data/misc/stargate/bg_estimation 0770 system system
+-    mkdir /data/misc/stargate/calib_test 0770 system system
+-    mkdir /data/misc/stargate/database 0770 system system
+-
+-    # Create directory for TZ Apps
+-    mkdir /data/misc/qsee 0770 system system
+-
+-    # Create directory for tftp
+-    mkdir /data/vendor/tombstones 0771 system system
+-
+-    #Create folder for mm-qcamera-daemon
+-    mkdir /data/misc/camera 0770 camera camera
+-
+-    mkdir /data/media 0770 media_rw media_rw
+-    chown media_rw media_rw /data/media
+-
+-    mkdir /data/vendor/ramdump 0771 root system
+-    mkdir /data/vendor/bluetooth 0770 bluetooth bluetooth
+-    mkdir /data/vendor/ramdump/bluetooth 0770 bluetooth bluetooth
+-
+-    # Create the directories used by the Wireless subsystem
+     mkdir /data/vendor/wifi 0770 wifi wifi
+     mkdir /data/vendor/wifi/sockets 0770 wifi wifi
++    mkdir /data/vendor/wifi/hostapd 0770 wifi wifi
+     mkdir /data/vendor/wifi/hostapd/ctrl 0770 wifi wifi
+     mkdir /data/vendor/wifi/wpa_supplicant 0770 wifi wifi
+     mkdir /data/misc/wifi 0770 wifi wifi
+     mkdir /data/misc/wifi/sockets 0770 wifi wifi
+     mkdir /data/misc/wifi/wpa_supplicant 0770 wifi wifi
+-    mkdir /data/misc/dhcp 0770 dhcp dhcp
+-    chown dhcp dhcp /data/misc/dhcp
+-
+-    # Create netmgr log dir
+-    mkdir /data/vendor/netmgr 0770 radio radio
+-    chmod 0770 /data/vendor/netmgr
+-
+-    # Create the directories used by CnE subsystem
+-    mkdir /data/connectivity 0771 system system
+-    chown system system /data/connectivity
+-
+-    # Create the directories used by DPM subsystem
+-    mkdir /data/dpm 0771 system system
+-    chown system system /data/dpm
+-
+-    mkdir /data/dpm/nsrm 0771 system system
+-    chown system system /data/dpm/nsrm
+-
+-    # Create directory used by audio subsystem
+-    mkdir /data/vendor/misc/audio 0770 audio audio
+-
+-    # Create directory for audio delta files
+-    mkdir /data/vendor/misc/audio/acdbdata 0770 media audio
+-    mkdir /data/vendor/misc/audio/acdbdata/delta 0770 media audio
+-
+-    # Create directory for radio
+-    mkdir /data/vendor/radio 0770 system radio
+-
+-    # Mounting of persist is moved to 'on emmc-fs' and 'on fs' sections
+-    # We chown/chmod /persist again so because mount is run as root + defaults
+-    chown root system /persist
+-    chmod 0771 /persist
+-    chown system system /persist/WCNSS_qcom_wlan_nv.bin
+-
+-    # Create directories for Location services
+-    mkdir /data/vendor/location 0770 gps gps
+-    mkdir /data/vendor/location/mq 0770 gps gps
+-    mkdir /data/vendor/location/xtwifi 0770 gps gps
+-
+-    # Create directory from IMS services
+-    mkdir /data/shared 0755
+-    chown system system /data/shared
+-
+-    # Create /data/time folder for time-services
+-    mkdir /data/time/ 0700 system system
+-
+-    mkdir /data/vendor/audio/ 0770 media audio
++    mkdir /data/misc/wifi/nvbin 0770 wifi wifi
++    copy /vendor/etc/wifi/WCNSS_hw_wlan_nv_ags_w09.bin /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
++    chown wifi wifi /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
++    chmod 0644 /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
+ 
+-    # Create a folder for audio delta files
+-    mkdir /data/vendor/audio/acdbdata 0770 media audio
+-    mkdir /data/vendor/audio/acdbdata/delta 0770 media audio
+-
+-    setprop vold.post_fs_data_done 1
+-
+-    # Create a folder for SRS to be able to create a usercfg file
+-    mkdir /data/data/media 0770 media media
+-
+-    # Create FM dir for patchdownloader
+-    mkdir /data/misc/fm 0770 system system
+-    chmod 0770 /data/misc/fm
+-
+-    # Create PERFD deamon related dirs
+-    mkdir /data/vendor/perfd 0770 root system
+-    chmod 2770 /data/vendor/perfd
+-    rm /data/vendor/perfd/default_values
+-
+-    # Create IOP  deamon related dirs
+-    mkdir /data/vendor/iop 0770 root system
+-
+-    # Mark the copy complete flag to not completed
+-    write /data/vendor/radio/copy_complete 0
+-    chown radio radio /data/vendor/radio/copy_complete
+-    chmod 0660 /data/vendor/radio/copy_complete
++on boot
++    chown wifi wifi /sys/module/wlan/parameters/fwpath
++    chown wifi wifi /proc/wifi_built_in/wifi_start
++    chmod 0220 /proc/wifi_built_in/wifi_start
++    chown system system /sys/class/graphics/fb0/lcd_cabc_mode
++    chmod 0664 /sys/class/graphics/fb0/lcd_cabc_mode
+ 
+-    # copy prebuilt qcril.db files always
+-    copy /vendor/radio/qcril_database/qcril.db /data/vendor/radio/qcril_prebuilt.db
+-    chown radio radio /data/vendor/radio/qcril_prebuilt.db
+-    chmod 0660 /data/vendor/radio/qcril_prebuilt.db
+-    # File flags for prebuilt ril db file
+-    write /data/vendor/radio/prebuilt_db_support 1
+-    chown radio radio /data/vendor/radio/prebuilt_db_support
+-    chmod 0400 /data/vendor/radio/prebuilt_db_support
+-    write /data/vendor/radio/db_check_done 0
+-    chown radio radio /data/vendor/radio/db_check_done
+-    chmod 0660 /data/vendor/radio/db_check_done
++service wpa_supplicant /vendor/bin/hw/wpa_supplicant \
++    -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf \
++    -I/vendor/etc/wifi/p2p_supplicant_overlay.conf -N \
++    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf \
++    -I/vendor/etc/wifi/wpa_supplicant_overlay.conf \
++    -O/data/misc/wifi/sockets -puse_p2p_group_interface=1 -dd \
++    -e/data/misc/wifi/entropy.bin -g@android:wpa_wlan0
++    class main
++    socket wpa_wlan0 dgram 660 wifi wifi
++    disabled
++    oneshot
+ 
+-    # set aggressive read ahead for dm-0 and dm-1 during boot up
+-    write /sys/block/dm-0/queue/read_ahead_kb 2048
+-    write /sys/block/dm-1/queue/read_ahead_kb 2048
++on fs
++    write /sys/module/firmware_class/parameters/path /firmware/image
+ 
+-    # Sensors
++on post-fs-data
+     chmod 0775 /persist/sensors
+     chmod 0664 /persist/sensors/sensors_settings
+     chown system root /persist/sensors/sensors_settings
++    mkdir /data/misc/sensors 0775 system system
+ 
+-    mkdir /data/misc/sensors
+-    chmod 0775 /data/misc/sensors
+-
+-on property:sys.boot_completed=1
+-    write /dev/kmsg "Boot completed "
+-    # Reset read ahead for dm-0 and dm-1 to 512kb
+-    write /sys/block/dm-0/queue/read_ahead_kb 512
+-    write /sys/block/dm-1/queue/read_ahead_kb 512
+-    # WDSP FW boot sysfs node used by STHAL
+-    chown media audio /sys/kernel/wdsp0/boot
+-    # CPE fw_name used by sound trigger HAL
+-    chown media audio /sys/kernel/wcd_cpe0/fw_name
+-
+-on property:vold.decrypt=trigger_restart_framework
+-    start wcnss-service
+-
+-on property:persist.env.fastdorm.enabled=true
+-    setprop persist.radio.data_no_toggle 1
+-
+-service cnd /vendor/bin/cnd
+-    class main
+-    user system
+-    group system wifi inet radio wakelock net_admin
+-
+-service dpmQmiMgr /vendor/bin/dpmQmiMgr
+-    class main
+-    user system
+-    group radio system
++on early-boot
++    start irsc_util
++    write /sys/bus/msm_subsys/devices/subsys1/restart_level related
++    write /sys/kernel/boot_adsp/boot 1
++    start sensors
+ 
+-service irsc_util /vendor/bin/irsc_util "/vendor/etc/sec_config"
++service irsc_util /vendor/bin/irsc_util /vendor/etc/sec_config
+     class core
+     user root
++    disabled
+     oneshot
+ 
+-service rmt_storage /vendor/bin/rmt_storage
++service sensors /vendor/bin/sensors.qcom
+     class core
+     user root
+-    group system wakelock
+-    shutdown critical
+-    ioprio rt 0
+-
+-service tftp_server /vendor/bin/tftp_server
+-    class main
+-    user root
+-    group root system
+-
+-service hciattach /vendor/bin/hci_qcomm_init -e
+-    class late_start
+-    user bluetooth
+-    group bluetooth net_bt_admin oem_2950 diag radio
++    group root system wakelock
+     disabled
+-    oneshot
+-
+-on property:bluetooth.hciattach=true
+-    start hciattach
+-    setprop bluetooth.status on
+ 
+-on property:bluetooth.hciattach=false
+-    setprop bluetooth.status off
+-
+-# FM
+-on property:hw.fm.init=0
+-    write /sys/module/radio_iris_transport/parameters/fmsmd_set 0
+-
+-on property:hw.fm.init=1
+-    write /sys/module/radio_iris_transport/parameters/fmsmd_set 1
++on post-fs-data
++    # Create folder for mm-qcamera-daemon
++    mkdir /data/misc/camera 0770 camera camera
++    mkdir /data/vendor/camera 0770 camera camera
++    # Create /data/time folder for time-services
++    mkdir /data/time/ 0700 system system
+ 
+-service netmgrd /vendor/bin/netmgrd
++service thermal-engine /vendor/bin/thermal-engine -c ${sys.qcom.thermalcfg:-/vendor/etc/thermal-engine.conf}
+     class main
+     user root
+-    group root wifi wakelock radio inet
++    socket thermal-send-client stream 0666 system system
++    socket thermal-recv-client stream 0660 system system
++    socket thermal-recv-passive-client stream 0666 system system
++    socket thermal-send-rule stream 0660 system system
++    group root
+ 
+-service qti /vendor/bin/qti
++service time_daemon /vendor/bin/time_daemon
+     class main
+-    user radio
+-    group radio oem_2901 usb
++    user root
++    group root
+ 
+-service baseband-sh /vendor/bin/init.qcom.baseband.sh
++service qcamerasvr /vendor/bin/mm-qcamera-daemon
+     class late_start
+-    user root
+-    oneshot
++    user camera
++    group camera system inet input graphics
+ 
+-service graphics-sh /vendor/bin/init.qcom.graphics.sh
+-    class core
+-    user root
+-    disabled
+-    oneshot
++on early-init
++    mount debugfs debugfs /sys/kernel/debug mode=0755
+ 
+-service sensors /vendor/bin/sensors.qcom
+-    class core
+-    user root
+-    group root
++on init
++    symlink /dev/block/platform/soc/7824900.sdhci /dev/block/bootdevice
+ 
+-# Adjust socket buffer to enlarge TCP receive window for high bandwidth
+-# but only if ro.data.large_tcp_window_size property is set.
+-on property:ro.data.large_tcp_window_size=true
+-    write /proc/sys/net/ipv4/tcp_adv_win_scale  2
++on post-fs
++    start oeminfo_nvm
+ 
+-on property:sys.sysctl.tcp_adv_win_scale=*
+-    write /proc/sys/net/ipv4/tcp_adv_win_scale ${sys.sysctl.tcp_adv_win_scale}
++service oeminfo_nvm /vendor/bin/oeminfo_nvm_server
++    class core
++    ioprio rt 4
++    disabled
+ 
+-service wpa_supplicant /vendor/bin/hw/wpa_supplicant \
+-    -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf \
+-    -I/vendor/etc/wifi/p2p_supplicant_overlay.conf -N \
+-    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf \
+-    -I/vendor/etc/wifi/wpa_supplicant_overlay.conf \
+-    -O/data/misc/wifi/sockets -puse_p2p_group_interface=1 -dd \
+-    -e/data/misc/wifi/entropy.bin -g@android:wpa_wlan0
++on post-fs-data
++    mkdir /data/system/perfd 0770 root system
++    chmod 2770 /data/system/perfd
++    rm /data/system/perfd/default_values
++    start perfd
++
++service perfd /vendor/bin/perfd
+     class main
+-    socket wpa_wlan0 dgram 660 wifi wifi
++    user root
++    group root readproc
+     disabled
+-    oneshot
++    socket perfd seqpacket 0666 root system
+ 
+-service loc_launcher /vendor/bin/loc_launcher
+-    #loc_launcher will start as root and set its uid to gps
+-    class late_start
+-    group gps inet diag wifi
++on property:sys.boot_completed=1
++    start qcom-post-boot
+ 
+-service qcom-sh /vendor/bin/init.qcom.sh
++service qcom-post-boot /vendor/bin/init.qcom.post_boot.sh
+     class late_start
+     user root
++    disabled
+     oneshot
+-
+-service ril-daemon2 /vendor/bin/hw/rild -c 2
+-    class main
+-    user radio
+-    group radio cache inet misc audio log readproc wakelock oem_2901
+-    capabilities BLOCK_SUSPEND NET_ADMIN NET_RAW
+-
+-service charger /charger
+-    class charger
+-    group system graphics
+-    seclabel u:r:healthd:s0
+-
+-service time_daemon /vendor/bin/time_daemon
+-    class main
+-    user root
+-    group root
+diff --git a/rootdir/init.qcom.usb.rc b/rootdir/init.qcom.usb.rc
+deleted file mode 100644
+index 2dc638a..0000000
+--- a/rootdir/init.qcom.usb.rc
++++ /dev/null
+@@ -1,1617 +0,0 @@
+-# Copyright (c) 2011-2016, The Linux Foundation. All rights reserved.
+-#
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are met:
+-#     * Redistributions of source code must retain the above copyright
+-#       notice, this list of conditions and the following disclaimer.
+-#     * Redistributions in binary form must reproduce the above copyright
+-#       notice, this list of conditions and the following disclaimer in the
+-#       documentation and/or other materials provided with the distribution.
+-#     * Neither the name of The Linux Foundation nor
+-#       the names of its contributors may be used to endorse or promote
+-#       products derived from this software without specific prior written
+-#       permission.
+-#
+-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-# IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+-# NON-INFRINGEMENT ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-#
+-
+-on charger
+-    setprop sys.usb.config mass_storage
+-
+-on boot
+-    mkdir /dev/usb-ffs 0770 shell shell
+-    mkdir /dev/usb-ffs/adb 0770 shell shell
+-    mount configfs none /config
+-    mkdir /config/usb_gadget/g1 0770 shell shell
+-    mkdir /config/usb_gadget/g1/strings/0x409 0770 shell shell
+-    write /config/usb_gadget/g1/bcdUSB 0x0200
+-    write /config/usb_gadget/g1/os_desc/use 1
+-    write /config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
+-    write /config/usb_gadget/g1/strings/0x409/manufacturer ${ro.product.manufacturer}
+-    write /config/usb_gadget/g1/strings/0x409/product ${ro.product.model}
+-    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+-    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+-    mkdir /config/usb_gadget/g1/functions/ptp.gs1
+-    mkdir /config/usb_gadget/g1/functions/accessory.gs2
+-    mkdir /config/usb_gadget/g1/functions/audio_source.gs3
+-    mkdir /config/usb_gadget/g1/functions/midi.gs5
+-    mkdir /config/usb_gadget/g1/functions/ffs.adb
+-    mkdir /config/usb_gadget/g1/functions/diag.diag
+-    mkdir /config/usb_gadget/g1/functions/cser.dun.0
+-    mkdir /config/usb_gadget/g1/functions/cser.nmea.1
+-    mkdir /config/usb_gadget/g1/functions/gsi.rmnet
+-    mkdir /config/usb_gadget/g1/functions/gsi.rndis
+-    mkdir /config/usb_gadget/g1/functions/gsi.dpl
+-    mkdir /config/usb_gadget/g1/functions/qdss.qdss
+-    mkdir /config/usb_gadget/g1/functions/rndis_bam.rndis
+-    mkdir /config/usb_gadget/g1/functions/ncm.0
+-    mkdir /config/usb_gadget/g1/configs/b.1 0770 shell shell
+-    mkdir /config/usb_gadget/g1/configs/b.1/strings/0x409 0770 shell shell
+-    write /config/usb_gadget/g1/os_desc/b_vendor_code 0x1
+-    write /config/usb_gadget/g1/os_desc/qw_sign "MSFT100"
+-    symlink /config/usb_gadget/g1/configs/b.1 /config/usb_gadget/g1/os_desc/b.1
+-    mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000
+-    write /sys/class/android_usb/android0/f_ffs/aliases adb
+-
+-service qcom-usb-sh /system/bin/sh /vendor/bin/init.qcom.usb.sh
+-    class core
+-    user root
+-    oneshot
+-
+-# Following are the parameters required for usb functionality. They provide configurable options like
+-# product_id/vendor id and allows specifying required functions:
+-#
+-# Required parameters:
+-#
+-# /sys/class/android_usb/android0/enable: Enables/disables usb composition
+-# Value: 0 (disable), 1 (enable)
+-#
+-# /sys/class/android_usb/android0/idVendor: Stores Vendor ID
+-# Value: 05c6 (Vendor id for Qualcomm Inc)
+-#
+-# /sys/class/android_usb/android0/idProduct: Stores Product id corresponding to usb composition
+-# Value: 0x9xxx for composite interface, 0xFxxx for single interface
+-#
+-# /sys/class/android_usb/android0/f_diag/clients: Stores name of clients representing a diag interface.
+-# Value: Passed one per interface. e.g. diag[,diag_mdm, diag_qsc, diag_mdm2]
+-#
+-# /sys/class/android_usb/android0/functions: Stores name of the function drivers used in usb composition.
+-# Value: Passed one per function driver. e.g. diag[,adb]
+-#
+-#Optional parameters:
+-#
+-# /sys/class/android_usb/android0/f_serial/transports: Stores type of underlying transports used to
+-# communicate to serial interface.
+-# Value: Passed one per interface. One value represents control and data transport together.
+-# e.g. smd[,sdio,tty,hsic]
+-# Only required if serial interface is present.
+-#
+-# /sys/class/android_usb/android0/f_serial/transport_names: Stores name of the underlying transports
+-# used to communicate to serial interface. This is used to distinguish between more than one interface
+-# using same transport type.
+-# Value: Passed one per interface. One value represents control and data transport together.
+-# e.g. serial_hsic[,serial_hsusb]
+-# Only required for transport type hsic, optional for other transport types.
+-#
+-# /sys/class/android_usb/android0/f_rmnet/transports: Stores type of underlying transports used to
+-# communicate to rmnet interface.
+-# Value: Passed two per interface as control, data transport type pair.
+-# e.g. smd,bam[,hsuart,hsuart]
+-# Only required if rmnet interface is present.
+-#
+-# /sys/class/android_usb/android0/f_rmnet/transport_names: Stores name of the underlying transports
+-# used to communicate to rmnet interface. This is used to distinguish between more than one interface
+-# using same transport type.
+-# Value: Passed one per interface. One value represents control and data transport together.
+-# e.g. rmnet_hsic[,rmnet_hsusb]
+-# Only required for transport type hsic, optional for other transport types.
+-
+-# USB compositions
+-on property:sys.usb.config=diag,serial_tty,serial_smd && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9002
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports tty,smd
+-    write /sys/class/android_usb/android0/functions diag,serial
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_tty,serial_smd,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9020
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,serial
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 901D
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 900E
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_bam,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9091
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_qti_bam,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9091
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_bam && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9092
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_qti_bam && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9092
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_cdev,serial_tty,rmnet_ipa,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_cdev,serial_tty,rmnet_ipa,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9026
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_bam,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_smd,acm_tty,rmnet_bam,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903D
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,adb,acm,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_bam,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9026
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_smd,acm_tty,rmnet_bam,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903E
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_sdio,serial_smd,rmnet_smd_sdio,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9037
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports sdio,smd
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet_smd_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,acm_sdio,acm_smd,rmnet_smd_sdio,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903B
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_acm/acm_transports sdio,smd
+-    write /sys/class/android_usb/android0/functions diag,adb,acm,rmnet_smd_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_sdio,serial_smd,rmnet_smd_sdio,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9038
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports sdio,smd
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_smd_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,acm_sdio,acm_smd,rmnet_smd_sdio,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903C
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_acm/acm_transports sdio,smd
+-    write /sys/class/android_usb/android0/functions diag,acm,rmnet_smd_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_sdio,serial_tty,rmnet_sdio,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9031
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports sdio,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,acm_sdio,acm_tty,rmnet_sdio,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903B
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_acm/acm_transports sdio,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,acm,rmnet_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_sdio,serial_tty,rmnet_sdio,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9032
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports sdio,tty
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,acm_sdio,acm_tty,rmnet_sdio,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903C
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_acm/acm_transports sdio,tty
+-    write /sys/class/android_usb/android0/functions diag,acm,rmnet_sdio,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_tty,serial_tty,rmnet_smd,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports tty,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    start port-bridge
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_tty,acm_tty,rmnet_smd,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903D
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports tty,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,acm,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    start port-bridge
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_tty,serial_tty,rmnet_smd,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9026
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports tty,tty
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start port-bridge
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_tty,acm_tty,rmnet_smd,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903E
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports tty,tty
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_smd,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_smd,acm_tty,rmnet_smd,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903D
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports smd,tty
+-    write /sys/class/android_usb/android0/functions diag,adb,acm,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    start port-bridge
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_smd,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9026
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,acm_smd,acm_tty,rmnet_smd,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903E
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_acm/acm_transports smd,tty
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet_smd,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# RmNet using USB BAM to IPA BAM
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_ipa,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_ipa,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9026
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_ipa,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9091
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_ipa && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9092
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 composition
+-on property:sys.usb.config=diag,serial_hsic,serial_tty,rmnet_hsic,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9025
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,tty
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 composition with diag_mdm and adb
+-on property:sys.usb.config=diag,diag_mdm,serial_hsic,serial_tty,rmnet_hsic,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9031
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,tty
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 composition with diag_mdm
+-on property:sys.usb.config=diag,diag_mdm,serial_hsic,serial_tty,rmnet_hsic,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9032
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,tty
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 DSDA composition with adb
+-on property:sys.usb.config=diag,diag_mdm,diag_qsc,serial_hsic,serial_hsuart,rmnet_hsic,rmnet_hsuart,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9065
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,hsuart
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic,serial_hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic,hsuart,hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic,rmnet_hsuart
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 DSDA composition without adb
+-on property:sys.usb.config=diag,diag_mdm,diag_qsc,serial_hsic,serial_hsuart,rmnet_hsic,rmnet_hsuart,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9066
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,hsuart
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic,serial_hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic,hsuart,hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic,rmnet_hsuart
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 DSDA2 composition with adb
+-on property:sys.usb.config=diag,diag_mdm,diag_mdm2,serial_hsic,serial_hsusb,rmnet_hsic,rmnet_hsusb,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9065
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_mdm2
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic,serial_hsusb
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic,hsic,hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic,rmnet_hsusb
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 3 DSDA2 composition without adb
+-on property:sys.usb.config=diag,diag_mdm,diag_mdm2,serial_hsic,serial_hsusb,rmnet_hsic,rmnet_hsusb,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9066
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_mdm2
+-    write /sys/class/android_usb/android0/f_serial/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic,serial_hsusb
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic,hsic,hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transport_names rmnet_hsic,rmnet_hsusb
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/module/mdm_bridge/parameters/rx_rmnet_buffer_size 16384
+-    write /sys/module/mdm_bridge/parameters/max_rx_urbs 20
+-    write /sys/module/g_android/parameters/ghsic_data_rx_req_size 16384
+-    write /sys/module/g_android/parameters/ghsic_data_rmnet_rx_q_size 20
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion PCIe composition with diag_mdm and adb
+-# Serial & RmNet bridged in userspace with tty and qti/ether
+-on property:sys.usb.config=diag,diag_mdm,serial_tty,rmnet_qti_ether,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9035
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion PCIe composition with diag_mdm
+-# Serial & RmNet bridged in userspace with tty and qti/ether
+-on property:sys.usb.config=diag,diag_mdm,serial_hsic,rmnet_hsic,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9036
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion HSIC/PCIe Hybrid composition with diag_mdm and adb
+-# RmNet is bridged over PCIe using qti,ether ctrl/data transports
+-on property:sys.usb.config=diag,diag_mdm,serial_hsic,rmnet_qti_ether,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9035
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports hsic
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion HSIC/PCIe Hybrid composition with diag_mdm
+-# RmNet is bridged over PCIe using qti,ether ctrl/data transports
+-on property:sys.usb.config=diag,diag_mdm,serial_hsic,rmnet_hsic,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9036
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports hsic
+-    write /sys/class/android_usb/android0/f_serial/transport_names serial_hsic
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion PCIe composition with diag_mdm
+-# Serial & RmNet bridged in userspace with port bridge and qti/ether
+-on property:sys.usb.config=diag,diag_mdm,serial_cdev,rmnet_qti_ether,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9036
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_cdev,rmnet_qti_ether,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9035
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 2.2 composition with diag_qsc and adb
+-on property:sys.usb.config=diag,diag_qsc,serial_smd,serial_tty,serial_hsuart,rmnet_hsuart,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9053
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_qsc
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty,hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam,hsuart,hsuart
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# Fusion 2.2 composition with diag_qsc
+-on property:sys.usb.config=diag,diag_qsc,serial_smd,serial_tty,serial_hsuart,rmnet_hsuart,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9054
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_qsc
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty,hsuart
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam,hsuart,hsuart
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.tethering=true
+-    write /sys/class/net/rndis0/queues/rx-0/rps_cpus ${sys.usb.rps_mask}
+-
+-on property:sys.usb.config=rndis
+-    setprop sys.usb.config rndis,${persist.sys.usb.config.extra}
+-
+-on property:sys.usb.config=rndis,none && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct F00E
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/functions rndis
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,adb && property:sys.usb.configfs=0
+-    setprop sys.usb.config rndis,${persist.sys.usb.config.extra},adb
+-
+-on property:sys.usb.config=rndis,none,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9024
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/functions rndis,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,diag && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 902C
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions rndis,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,diag,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 902D
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions rndis,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-# DPL is implemented using QDSS
+-on property:sys.usb.config=rndis,diag,dpl && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90BF
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions rndis,diag,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-# DPL is implemented using QDSS
+-on property:sys.usb.config=rndis,diag,dpl,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90C0
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions rndis,diag,qdss,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,serial_smd && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B3
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/functions rndis,serial
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,serial_smd,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B4
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/functions rndis,serial,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,serial_smd,diag && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B5
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/functions rndis,serial,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,serial_smd,diag,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B6
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/functions rndis,serial,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,serial_cdev,diag && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B5
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge
+-    write /sys/class/android_usb/android0/functions rndis,serial,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,serial_cdev,diag,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B6
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge
+-    write /sys/class/android_usb/android0/functions rndis,serial,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,diag,diag_mdm && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9041
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions rndis,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,diag,diag_mdm,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9042
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions rndis,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=rndis,diag,diag_mdm,diag_qsc && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9086
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/functions rndis,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state rndis
+-
+-on property:sys.usb.config=rndis,diag,diag_mdm,diag_qsc,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9087
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/functions rndis,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state rndis,adb
+-
+-on property:sys.usb.config=ptp && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 904D
+-    write /sys/class/android_usb/android0/functions ptp
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=ptp,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 904E
+-    write /sys/class/android_usb/android0/functions ptp,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct F003
+-    write /sys/class/android_usb/android0/functions mtp
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9039
+-    write /sys/class/android_usb/android0/functions mtp,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 901B
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions mtp,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903A
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions mtp,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag,diag_mdm && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9040
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions mtp,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag,diag_mdm,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 903F
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions mtp,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag,diag_mdm,diag_qsc && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9088
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/functions mtp,diag
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mtp,diag,diag_mdm,diag_qsc,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9089
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm,diag_qsc
+-    write /sys/class/android_usb/android0/functions mtp,diag,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,ccid && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9045
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions diag,ccid
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,ccid,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9044
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/functions diag,adb,ccid
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9015
+-    write /sys/class/android_usb/android0/functions adb,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-#Mass-storage only composition
+-on property:sys.usb.config=mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct F000
+-    write /sys/class/android_usb/android0/functions mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 904A
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9060
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9099
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9098
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_bam && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9083
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_qti_bam && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9083
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_bam,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9084
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb,rmnet
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_qti_bam,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9084
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb,rmnet
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_ipa && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9083
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,qdss,rmnet_ipa,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9084
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb,rmnet
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss,rmnet_hsic && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 909B
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss,rmnet_hsic,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 909A
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb,rmnet
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss_apq,qdss_mdm,rmnet_hsic && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90A3
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports bam,hsic
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam,qdss_hsic
+-    write /sys/class/android_usb/android0/functions diag,qdss,rmnet
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,qdss_apq,qdss_mdm,rmnet_hsic,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90A2
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_rmnet/transports hsic,hsic
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports bam,hsic
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam,qdss_hsic
+-    write /sys/class/android_usb/android0/functions diag,qdss,adb,rmnet
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=rndis,diag,qdss && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9081
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions rndis,diag,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=rndis,diag,qdss,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 9082
+-    write /sys/class/android_usb/android0/f_rndis/wceis 1
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 1
+-    write /sys/class/android_usb/android0/f_qdss/transports bam
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/functions rndis,diag,qdss,adb
+-    write /sys/module/dwc3/parameters/tx_fifo_resize_enable 1
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# same as 9025, plus data packet logging (DPL) using QDSS
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_ipa,mass_storage,dpl,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90AD
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-# same as 9026, plus data packet logging (DPL)
+-on property:sys.usb.config=diag,serial_smd,serial_tty,rmnet_ipa,mass_storage,dpl && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B0
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_cdev,serial_tty,rmnet_ipa,mass_storage,dpl,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90AD
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge,tty
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,mass_storage,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_cdev,serial_tty,rmnet_ipa,mass_storage,dpl && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B0
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports char_bridge,tty
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,mass_storage,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=ncm && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 0525
+-    write /sys/class/android_usb/android0/idProduct A4A1
+-    write /sys/class/android_usb/android0/functions ncm
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=ncm,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 908C
+-    write /sys/class/android_usb/android0/functions ncm,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=charging && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct F006
+-    write /sys/class/android_usb/android0/functions charging
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_qti_bam,dpl_qti_bam_dmux && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B7
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam_dmux
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_qti_bam,dpl_qti_bam_dmux,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B8
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam_dmux
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,qdss,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_cnss,serial_smd,serial_tty,rmnet_bam,mass_storage,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B2
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_cnss
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,diag_cnss,adb,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_cnss,serial_smd,serial_tty,rmnet_bam,mass_storage && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B3
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_cnss
+-    write /sys/class/android_usb/android0/f_serial/transports smd,tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports smd,bam
+-    write /sys/class/android_usb/android0/functions diag,diag_cnss,serial,rmnet,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=midi && property:sys.usb.configfs=0
+-     write /sys/class/android_usb/android0/enable 0
+-     write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-     write /sys/class/android_usb/android0/idVendor 05C6
+-     write /sys/class/android_usb/android0/idProduct 90BA
+-     write /sys/class/android_usb/android0/functions midi
+-     write /sys/class/android_usb/android0/enable 1
+-     setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=midi,adb && property:sys.usb.configfs=0
+-     write /sys/class/android_usb/android0/enable 0
+-     write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-     write /sys/class/android_usb/android0/idVendor 05C6
+-     write /sys/class/android_usb/android0/idProduct 90BB
+-     write /sys/class/android_usb/android0/functions midi,adb
+-     write /sys/class/android_usb/android0/enable 1
+-     start adbd
+-     setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_ipa,dpl && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B7
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,qdss
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,serial_smd,rmnet_ipa,dpl,adb && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90B8
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/f_serial/transports smd
+-# DPL is implemented using QDSS
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_bam
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,bam2bam_ipa
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,qdss,adb
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_tty,rmnet_qti_ether,dpl_ether,mass_storage,adb
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90AE
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,ether
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_dpl
+-    write /sys/class/android_usb/android0/functions diag,adb,serial,rmnet,qdss,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,diag_mdm,serial_tty,rmnet_qti_ether,dpl_ether,mass_storage
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90AF
+-    write /sys/class/android_usb/android0/f_diag/clients diag,diag_mdm
+-    write /sys/class/android_usb/android0/f_serial/transports tty
+-    write /sys/class/android_usb/android0/f_rmnet/transports qti,ether
+-    write /sys/class/android_usb/android0/f_qdss/debug_intf 0
+-    write /sys/class/android_usb/android0/f_qdss/transports qti,ether
+-    write /sys/class/android_usb/android0/f_qdss/transport_names qdss_dpl
+-    write /sys/class/android_usb/android0/functions diag,serial,rmnet,qdss,mass_storage
+-    write /sys/class/android_usb/android0/enable 1
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,adb,uac2
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90CA
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions diag,adb,uac2_func
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,adb,video && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90CB
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions diag,adb,video
+-    write /sys/module/dwc3/parameters/high_bw_ep_in_num 4
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+-
+-on property:sys.usb.config=diag,adb,uac2,video && property:sys.usb.configfs=0
+-    write /sys/class/android_usb/android0/enable 0
+-    write /sys/class/android_usb/android0/idVendor 05C6
+-    write /sys/class/android_usb/android0/idProduct 90CC
+-    write /sys/class/android_usb/android0/f_diag/clients diag
+-    write /sys/class/android_usb/android0/functions diag,adb,uac2_func,video
+-    write /sys/module/dwc3/parameters/high_bw_ep_in_num 5
+-    write /sys/class/android_usb/android0/enable 1
+-    start adbd
+-    setprop sys.usb.state ${sys.usb.config}
+diff --git a/rootdir/init.target.rc b/rootdir/init.target.rc
+deleted file mode 100644
+index aca6a12..0000000
+--- a/rootdir/init.target.rc
++++ /dev/null
+@@ -1,179 +0,0 @@
+-# Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
+-#
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are
+-# met:
+-#     * Redistributions of source code must retain the above copyright
+-#       notice, this list of conditions and the following disclaimer.
+-#     * Redistributions in binary form must reproduce the above
+-#       copyright notice, this list of conditions and the following
+-#       disclaimer in the documentation and/or other materials provided
+-#       with the distribution.
+-#     * Neither the name of The Linux Foundation nor the names of its
+-#       contributors may be used to endorse or promote products derived
+-#       from this software without specific prior written permission.
+-#
+-# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+-# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+-# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+-# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+-# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-#
+-#
+-
+-on early-init
+-    mkdir /firmware 0771 system system
+-    mkdir /system 0777 root root
+-    symlink /data/tombstones /tombstones
+-    mkdir /dsp 0771 media media
+-
+-on fs
+-    wait /dev/block/platform/soc/${ro.boot.bootdevice}
+-    symlink /dev/block/platform/soc/${ro.boot.bootdevice} /dev/block/bootdevice
+-
+-    mount_all /vendor/etc/fstab.qcom
+-    swapon_all /vendor/etc/fstab.qcom
+-    write /proc/sys/vm/page-cluster 0
+-    write /proc/sys/vm/swappiness 100
+-    write /sys/block/zram0/comp_algorithm lz4
+-
+-    mkdir /persist/data 0700 system system
+-    mkdir /persist/bms 0700 root system
+-    restorecon_recursive /persist
+-
+-    chown system system /proc/gesture/onoff 
+-    chmod 660 /proc/gesture/onoff 
+-
+-on post-fs-data
+-    mkdir /persist/data/sfs 0700 system system
+-    mkdir /persist/data/tz 0700 system system
+-    mkdir /data/misc/hbtp 0750 system system
+-    mkdir /data/misc/dts 0770 media audio
+-
+-# Start camera server as daemon
+-service qcamerasvr /vendor/bin/mm-qcamera-daemon
+-    class late_start
+-    user camera
+-    group camera system inet input graphics
+-
+-# Allow usb charging to be disabled peristently
+-on property:persist.usb.chgdisabled=1
+-    write /sys/class/power_supply/battery/charging_enabled 0
+-
+-on property:persist.usb.chgdisabled=0
+-    write /sys/class/power_supply/battery/charging_enabled 1
+-
+-service qseecomd /vendor/bin/qseecomd
+-    class core
+-    user root
+-    group root
+-
+-service thermal-engine /vendor/bin/thermal-engine -c ${sys.qcom.thermalcfg:-/vendor/etc/thermal-engine.conf}
+-    class main
+-    user root
+-    socket thermal-send-client stream 0666 system system
+-    socket thermal-recv-client stream 0660 system system
+-    socket thermal-recv-passive-client stream 0666 system system
+-    socket thermal-send-rule stream 0660 system system
+-    group root
+-
+-service wcnss-service /vendor/bin/wcnss_service
+-    class main
+-    user system
+-    group system wifi radio
+-    oneshot
+-
+-service imsqmidaemon /vendor/bin/imsqmidaemon
+-    class main
+-    user system
+-    socket ims_qmid stream 0660 system radio
+-    group radio log diag
+-
+-service imsdatadaemon /vendor/bin/imsdatadaemon
+-    class main
+-    user system
+-    socket ims_datad stream 0660 system radio
+-    group system wifi radio inet log diag
+-    disabled
+-
+-on property:vendor.ims.QMI_DAEMON_STATUS=1
+-    start imsdatadaemon
+-
+-service ims_rtp_daemon /vendor/bin/ims_rtp_daemon
+-    class main
+-    user system
+-    socket ims_rtpd stream 0660 system radio
+-    group radio diag inet log
+-    disabled
+-
+-service vendor.imsrcsservice /vendor/bin/imsrcsd
+-    class main
+-    user system
+-    group radio inet log
+-    disabled
+-
+-on property:vendor.ims.DATA_DAEMON_STATUS=1
+-    start ims_rtp_daemon
+-    start vendor.imsrcsservice
+-
+-service ppd /vendor/bin/mm-pp-dpps
+-    class late_start
+-    disabled
+-    user system
+-    socket pps stream 0660 system system
+-    group system graphics
+-
+-on property:init.svc.surfaceflinger=stopped
+-    stop ppd
+-
+-on property:init.svc.surfaceflinger=running
+-    start ppd
+-
+-on property:init.svc.surfaceflinger=restarting
+-    stop hwcomposer-2-1
+-    start hwcomposer-2-1
+-    stop ppd
+-
+-on property:init.svc.zygote=stopped
+-    stop ppd
+-
+-on property:init.svc.zygote=running
+-    start ppd
+-
+-on property:init.svc.zygote=restarting
+-    stop ppd
+-
+-on charger
+-    wait /dev/block/bootdevice/by-name/system
+-    mount ext4 /dev/block/bootdevice/by-name/system /system ro barrier=1
+-    load_all_props
+-    setprop sys.usb.configfs 0
+-    setprop persist.sys.usb.config mass_storage
+-    start hvdcp_opti
+-
+-service hbtp /vendor/bin/hbtp_daemon
+-    class main
+-    user system
+-    group system
+-    disabled
+-
+-service adsprpcd /vendor/bin/adsprpcd
+-    class main
+-    user media
+-    group media
+-
+-service per_mgr /vendor/bin/pm-service
+-    class core
+-    user system
+-    group system net_raw
+-
+-service hvdcp_opti /vendor/bin/hvdcp_opti
+-    class main
+-    user root
+-    group root
+diff --git a/rootdir/init.wifi.sh b/rootdir/init.wifi.sh
+new file mode 100755
+index 0000000..0aa27d8
+--- /dev/null
++++ b/rootdir/init.wifi.sh
+@@ -0,0 +1,15 @@
++#!/system/bin/sh
++L="log -p i -t wifi-bringup"
++MAC=$(/system/bin/sh /init.wifi_mac.sh)
++if [ -n "$MAC" ]; then
++    printf %s "$MAC" > /proc/wifi_built_in/mac_addr_hw && $L "factory MAC set from oeminfo"
++else
++    $L "no factory MAC from oeminfo; prima will autogenerate"
++fi
++/vendor/bin/wcnss_service &
++for i in 1 2 3; do
++    sleep 3
++    echo start > /proc/wifi_built_in/wifi_start && break
++    $L "driver start attempt $i failed"
++done
++[ -e /sys/class/net/wlan0 ] && $L "wlan0 up" || $L "wlan0 missing"
+diff --git a/rootdir/init.wifi_mac.sh b/rootdir/init.wifi_mac.sh
+new file mode 100755
+index 0000000..fea5a6d
+--- /dev/null
++++ b/rootdir/init.wifi_mac.sh
+@@ -0,0 +1,60 @@
++#!/system/bin/sh
++OI=${1:-/dev/block/platform/soc/7824900.sdhci/by-name/oeminfo}
++CACHE=${2:-/data/misc/wifi/oeminfo_wifimac}
++best=; bestage=-1
++for blk in 51 8243; do
++    h=$(dd if=$OI bs=4096 skip=$blk count=1 2>/dev/null | od -An -tx1 -v -N28 | tr -d ' \n')
++    case $h in 4f454d5f494e464f06000000340000000100000000010000*) ;; *) continue ;; esac
++    a=${h#????????????????????????????????????????????????}
++    age=$((0x${a%??????}))
++    [ $age -gt $bestage ] && { best=$blk; bestage=$age; }
++done
++[ -n "$best" ] || exit 1
++key=$(dd if=$OI bs=4096 skip=$best count=1 2>/dev/null | sha256sum)
++key=${key%% *}
++if [ -r $CACHE ]; then
++    read ckey cmac < $CACHE
++    [ "$ckey" = "$key" ] && [ -n "$cmac" ] && { echo $cmac; exit 0; }
++fi
++mac=$(dd if=$OI bs=4096 skip=$best count=1 2>/dev/null | od -An -tu1 -v -j 512 -N 256 | awk '
++function mont(a, b, r,  t, i, j, s, C, m, d) {
++    for (j = 0; j <= L + 1; j++) t[j] = 0
++    for (i = 0; i < L; i++) {
++        C = 0
++        for (j = 0; j < L; j++) { s = t[j] + a[j] * b[i] + C; C = int(s / B); t[j] = s - C * B }
++        s = t[L] + C; C = int(s / B); t[L] = s - C * B; t[L + 1] = C
++        m = (t[0] * NP) % B
++        s = t[0] + m * n[0]; C = int(s / B)
++        for (j = 1; j < L; j++) { s = t[j] + m * n[j] + C; C = int(s / B); t[j - 1] = s - C * B }
++        s = t[L] + C; C = int(s / B); t[L - 1] = s - C * B; t[L] = t[L + 1] + C
++    }
++    d = 0
++    for (j = L - 1; j >= 0; j--) { if (d == 0) { if (t[j] > n[j]) d = 1; if (t[j] < n[j]) d = 2 } }
++    if (t[L] > 0) d = 1
++    if (d < 2) {
++        C = 0
++        for (j = 0; j < L; j++) { s = t[j] - n[j] - C; C = 0; if (s < 0) { s += B; C = 1 }; t[j] = s }
++    }
++    for (j = 0; j < L; j++) r[j] = t[j]
++}
++BEGIN { L = 128; B = 65536; NP = 40955
++    split("27853 62945 51380 52678 11667 57667 64276 3242 55227 7889 38274 52888 51519 27686 53998 39780 46781 20587 2178 57444 43099 26818 11800 17357 64223 55199 53209 57435 57436 47853 53567 50862 15892 2696 35333 26893 13869 36259 58850 9107 3979 55651 62941 60733 54171 7713 57009 31576 16804 16277 58317 32173 53138 10891 12836 31086 48773 41306 41540 54647 43074 30437 26047 8115 11623 12595 59457 37096 28423 2041 57299 18837 57731 59271 31183 50624 50548 25116 53762 50335 64306 41141 30379 13928 60570 34128 8810 382 36936 63192 44572 32423 63303 58723 54113 4298 42068 44526 19439 34368 55108 13616 31945 16273 24356 33665 40573 51675 32592 30803 26367 55667 14919 35102 32020 40620 40973 16343 59986 1373 16943 18595 56617 64037 39784 34954 35771 39741", tmp, " "); for (i = 0; i < L; i++) n[i] = tmp[i + 1] + 0
++    split("15008 59915 35601 19093 30944 13321 55480 42824 42379 35270 40816 19363 31084 28023 10194 62876 26471 45782 62797 2442 47382 40980 2016 33276 63096 923 23148 52902 39456 36623 53100 1959 20713 59181 25184 30011 2529 30770 59178 33561 32803 51926 57019 54765 54444 35851 22450 13376 22039 48416 11561 45751 33850 29973 16344 18786 20710 5890 58312 1990 52025 25651 17346 52287 38669 29097 48045 52420 23520 4943 23116 42457 54023 40057 6308 23403 12799 16951 4605 51895 11798 50421 50264 15937 31951 23788 36656 27138 28401 60090 64469 38701 3701 22187 25836 51873 23781 4817 40637 47836 63184 46410 47010 48202 63699 59732 51642 59210 24503 5656 10802 19222 33739 929 9317 6148 28387 26294 9527 55437 30225 15382 57386 24960 43298 45409 20309 7607", tmp, " "); for (i = 0; i < L; i++) r2[i] = tmp[i + 1] + 0 }
++{ for (i = 1; i <= NF; i++) by[nb++] = $i + 0 }
++END {
++    if (nb != 256) exit 1
++    for (i = 0; i < L; i++) c[i] = by[254 - 2 * i] * 256 + by[255 - 2 * i]
++    mont(c, r2, cm); for (i = 0; i < L; i++) x[i] = cm[i]
++    for (k = 0; k < 16; k++) { mont(x, x, y); for (i = 0; i < L; i++) x[i] = y[i] }
++    mont(x, cm, y); one[0] = 1; for (i = 1; i < L; i++) one[i] = 0; mont(y, one, p)
++    bad = (p[127] != 1 || p[6] != 65280)
++    for (i = 7; i < 127; i++) { if (p[i] != 65535) bad = 1 }
++    if (bad) exit 1
++    printf "%02X:%02X:%02X:%02X:%02X:%02X\n", p[3] % 256, int(p[3] / 256), p[4] % 256, int(p[4] / 256), p[5] % 256, int(p[5] / 256)
++}')
++case $mac in
++    [0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]) ;;
++    *) exit 1 ;;
++esac
++echo "$key $mac" > $CACHE.tmp && mv $CACHE.tmp $CACHE
++echo $mac
+diff --git a/system.prop b/system.prop
+new file mode 100644
+index 0000000..c5d9884
+--- /dev/null
++++ b/system.prop
+@@ -0,0 +1,8 @@
++# Wi-Fi only tablet
++ro.radio.noril=true
++
++# logd must not read the kernel log: on this kernel klogd spins at 100% CPU (15.1 fix 25)
++ro.logd.kernel=false
++
++# Stock marketing name (About tablet, Settings patch)
++ro.config.marketing_name=HUAWEI MediaPad T3 10

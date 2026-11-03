@@ -1,0 +1,32 @@
+From 04a1e3dae6aac5f8251d3075b59832065f37f880 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 17:40:24 +0200
+Subject: [PATCH 10/17] AGS-W09 config.fs: OEM AIDs as AID_VENDOR_* (required
+ on Q; values unchanged)
+
+---
+ config.fs | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/config.fs b/config.fs
+index 8adf901..03555db 100644
+--- a/config.fs
++++ b/config.fs
+@@ -1,13 +1,13 @@
+-[AID_QCOM_DIAG]
++[AID_VENDOR_QCOM_DIAG]
+ value:2950
+ 
+-[AID_QTI_DIAG]
++[AID_VENDOR_QTI_DIAG]
+ value:2901
+ 
+-[AID_RFS]
++[AID_VENDOR_RFS]
+ value:2951
+ 
+-[AID_RFS_SHARED]
++[AID_VENDOR_RFS_SHARED]
+ value:2952
+ 
+ [vendor/bin/wcnss_filter]

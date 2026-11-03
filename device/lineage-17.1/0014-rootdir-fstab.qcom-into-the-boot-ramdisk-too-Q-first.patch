@@ -1,0 +1,64 @@
+From cbdfb04972f45fcbc94c955618ccc7268ad239ac Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 19:42:34 +0200
+Subject: [PATCH 14/17] rootdir: fstab.qcom into the boot ramdisk too (Q
+ first-stage init reads it there; root is inside system.img)
+
+---
+ product/init.mk    |  3 ++-
+ rootdir/Android.mk | 23 +++++++++++++++++++----
+ 2 files changed, 21 insertions(+), 5 deletions(-)
+
+diff --git a/product/init.mk b/product/init.mk
+index 0dcb1fc..e7002bc 100644
+--- a/product/init.mk
++++ b/product/init.mk
+@@ -1,6 +1,7 @@
+-# Boot ramdisk (see rootdir/Android.mk)
++# Boot ramdisk + root (see rootdir/Android.mk)
+ PRODUCT_PACKAGES += \
+     fstab.qcom \
++    fstab.qcom_ramdisk \
+     init.qcom.rc \
+     ueventd.qcom.rc \
+     init.wifi.sh \
+diff --git a/rootdir/Android.mk b/rootdir/Android.mk
+index 8d65abd..3dea8eb 100644
+--- a/rootdir/Android.mk
++++ b/rootdir/Android.mk
+@@ -1,9 +1,14 @@
+ LOCAL_PATH := $(call my-dir)
+ 
+-# Android 10 (legacy, non-Treble) layout for the AGS-W09:
+-#  - boot ramdisk: fstab.qcom (first-stage mount of system + vendor), init.qcom.rc (all device
+-#    services; the prebuilt EMUI vendor's own /vendor/etc/init/hw/init.qcom.rc is neutralised),
+-#    ueventd.qcom.rc (read last by ueventd, so it overrides /vendor/ueventd.rc), WiFi bring-up.
++# Android 10 (legacy, non-Treble) layout for the AGS-W09. Q always builds system.img in
++# system-as-root layout: TARGET_ROOT_OUT is staged into it, and first-stage init (the only thing in
++# the boot ramdisk) mounts system + vendor, then switch_root()s into system.
++#  - boot ramdisk (TARGET_RAMDISK_OUT): fstab.qcom, read by first-stage init (this DT has no
++#    android,fstab node). Only its first_stage_mount entries are used there.
++#  - root (TARGET_ROOT_OUT, inside system.img): fstab.qcom again for mount_all, init.qcom.rc (all
++#    device services; the prebuilt EMUI vendor's own /vendor/etc/init/hw/init.qcom.rc is
++#    neutralised), ueventd.qcom.rc (read last by ueventd, so it overrides /vendor/ueventd.rc),
++#    WiFi bring-up.
+ #  - /vendor/bin: the Qualcomm helper scripts (vendor image only).
+ 
+ define ags_w09_root_prebuilt
+@@ -17,6 +22,16 @@ include $$(BUILD_PREBUILT)
+ endef
+ 
+ $(eval $(call ags_w09_root_prebuilt,fstab.qcom))
++
++include $(CLEAR_VARS)
++LOCAL_MODULE       := fstab.qcom_ramdisk
++LOCAL_MODULE_STEM  := fstab.qcom
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := fstab.qcom
++LOCAL_MODULE_PATH  := $(TARGET_RAMDISK_OUT)
++include $(BUILD_PREBUILT)
++
+ $(eval $(call ags_w09_root_prebuilt,init.qcom.rc))
+ $(eval $(call ags_w09_root_prebuilt,ueventd.qcom.rc))
+ $(eval $(call ags_w09_root_prebuilt,init.wifi.sh))
