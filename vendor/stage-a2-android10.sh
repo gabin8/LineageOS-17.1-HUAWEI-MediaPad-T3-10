@@ -22,6 +22,7 @@
 #     attaches it (TARGET_LD_SHIM_LIBS), the library itself lives on the vendor partition.
 #     libshim_hwlog: liblog's logprint API for Huawei's libhwlog (camera daemon could not link).
 #  5. Park the 15.1 livedisplay@1.0 sdm service rc (interface dropped in 17.1; cannot link).
+#  8. camera.msm8937.so: sendSingleParam() patched to return 0 (Oreo-sized stack Parcel overflow).
 #  7. media_codecs_performance.xml: two update entries rewritten to the form Q's parser accepts
 #     (else no codecs at all); debug.sf.latch_unsignaled=0 (Q client composition showed garbage).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
@@ -71,6 +72,26 @@ def rep(m):
 open(sys.argv[2], 'w').write(pat.sub(rep, s))
 EOF
 rm -f "$S/perf.xml"
+# camera.msm8937.so (32-bit, Huawei Oreo HAL): its static copy of qdutils' sendSingleParam() puts two
+# android::Parcel on the stack with Oreo's size (52 bytes); Android 10's Parcel is larger, so the
+# constructor overran into the stack canary -> "stack corruption detected" -> camera provider abort,
+# "Can't connect to the camera". Its only use is setCameraLaunchStatus(), a bandwidth hint to the
+# display service, so make it return 0 (movs r0,#0; bx lr). Only the known original is patched.
+mkdir -p "$S/lib/hw"
+adb pull /vendor/lib/hw/camera.msm8937.so "$S/cam.so" >/dev/null
+python3 - "$S/cam.so" "$S/lib/hw/camera.msm8937.so" <<'EOF'
+import hashlib, sys
+d = bytearray(open(sys.argv[1], 'rb').read())
+h = hashlib.sha256(d).hexdigest()
+off = 0x60dec                          # vaddr 0x61dec, first PT_LOAD at vaddr 0x1000 / offset 0
+if h.startswith('71f5a78f1ec86e96'):
+    sys.exit(0)                        # already patched: nothing staged
+assert h.startswith('880bf987e491cc50'), 'unknown camera.msm8937.so, not patching'
+assert d[off:off + 4] == bytes.fromhex('f0b59db0')
+d[off:off + 4] = bytes.fromhex('00207047')
+open(sys.argv[2], 'wb').write(d)
+EOF
+rm -f "$S/cam.so"
 adb shell rm -rf /tmp/a2files
 adb push "$S" /tmp/a2files >/dev/null
 adb shell sh -s <<'EOF'
