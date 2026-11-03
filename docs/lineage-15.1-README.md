@@ -82,7 +82,7 @@ Ordered roughly as the boot progresses. Everything here is in this kit.
    **FunctionFS** for adb under `on fs` (`f_ffs/aliases adb` + `mount functionfs adb …`) because this
    kernel's android_usb adb is ffs-backed (without it the host sees `error -32, unable to enumerate`);
    and start `adbd` **before** `android0/enable 1`. Enumerates `18d1:4ee7`, authorized via baked
-   `/adb_keys`. **The main-boot serial is `0123456789ABCDEF`, different from fastboot/recovery `<device serial>`.**
+   `/adb_keys`. **The main-boot serial is `0123456789ABCDEF`, different from the device's own serial that fastboot and recovery report.**
 9. **cpuset population** (`init.qcom.rc`) — the device has 4 cores (0-3) but init.rc copies the initially
    empty root cpuset into the children → `cpus=""` → `system_server.setThreadGroupAndCpuset()` throws and
    crash-loops (DisplayManagerService). Write `0-3` to each of foreground/background/system-background/top-app.
