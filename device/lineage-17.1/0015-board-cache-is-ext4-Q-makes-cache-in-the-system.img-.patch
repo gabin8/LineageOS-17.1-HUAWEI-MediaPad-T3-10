@@ -1,7 +1,7 @@
 From 6ff98f0e76019f73956e73f813b61739a99485b7 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 22:13:28 +0200
-Subject: [PATCH 15/17] board: cache is ext4 (Q makes /cache in the system.img
+Subject: [PATCH 15/20] board: cache is ext4 (Q makes /cache in the system.img
  root a dir only when this is set; else a /data/cache symlink and mount_all
  fails)
 

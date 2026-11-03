@@ -15,3 +15,6 @@
 0015-board-cache-is-ext4-Q-makes-cache-in-the-system.img-.patch
 0016-wifi-wpa_supplicant-on-the-Android-10-config-paths-d.patch
 0017-overlay-lock-screen-rotation-on-by-default-needs-the.patch
+0018-audio-ICU-58-shim-for-the-Huawei-Oreo-audio.primary-.patch
+0019-camera-liblog-logprint-shim-for-Huawei-libhwlog-mm-q.patch
+0020-hwui-no-EGL-buffer-age-Oreo-Adreno-Android-10-stale-.patch

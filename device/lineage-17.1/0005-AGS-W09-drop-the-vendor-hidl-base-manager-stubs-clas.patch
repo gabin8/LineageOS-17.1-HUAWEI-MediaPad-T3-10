@@ -1,7 +1,7 @@
 From a803eccb862b2af994a9b6e2d52a17a7ebc2294b Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:25:10 +0200
-Subject: [PATCH 05/17] AGS-W09: drop the vendor hidl base/manager stubs (clash
+Subject: [PATCH 05/20] AGS-W09: drop the vendor hidl base/manager stubs (clash
  with Q's android.hidl.base@1.0)
 
 ---

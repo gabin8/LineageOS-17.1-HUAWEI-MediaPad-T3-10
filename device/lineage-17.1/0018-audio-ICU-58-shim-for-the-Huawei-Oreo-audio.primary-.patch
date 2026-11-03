@@ -1,0 +1,145 @@
+From d97ff32619fa00c9feca45442afd182c77a0b6e2 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 23:37:42 +0200
+Subject: [PATCH 18/20] audio: ICU 58 shim for the Huawei Oreo audio.primary
+ (Android 10 ships ICU 63)
+
+audio.primary.msm8937.so calls ucnv_*_58; Android 10's libicuuc exports
+ucnv_*_63, so the HAL failed to load. libshim_icu58 forwards the seven
+entry points, resolving the versioned names from the ICU headers with
+dlsym() (ICU is in the runtime APEX; linking libicuuc would put it in the
+system image, which the build forbids). Attached via TARGET_LD_SHIM_LIBS.
+---
+ board/shims.mk        |  5 ++-
+ device.mk             |  3 +-
+ libshims/Android.mk   | 12 +++++++
+ libshims/icu58_shim.c | 78 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 96 insertions(+), 2 deletions(-)
+ create mode 100644 libshims/icu58_shim.c
+
+diff --git a/board/shims.mk b/board/shims.mk
+index 4966249..dad880c 100644
+--- a/board/shims.mk
++++ b/board/shims.mk
+@@ -1,2 +1,5 @@
+ TARGET_LD_SHIM_LIBS := \
+-    /vendor/lib64/libizat_core.so|libshim_procname.so:/vendor/lib/libizat_core.so|libshim_procname.so
++    /vendor/lib64/libizat_core.so|libshim_procname.so \
++    /vendor/lib/libizat_core.so|libshim_procname.so \
++    /vendor/lib/hw/audio.primary.msm8937.so|libshim_icu58.so \
++    /vendor/lib64/hw/audio.primary.msm8937.so|libshim_icu58.so
+diff --git a/device.mk b/device.mk
+index a608eb8..cc01cf1 100644
+--- a/device.mk
++++ b/device.mk
+@@ -46,4 +46,5 @@ PRODUCT_COPY_FILES += \
+ 
+ # Shims
+ PRODUCT_PACKAGES += \
+-    libshim_procname
++    libshim_procname \
++    libshim_icu58
+diff --git a/libshims/Android.mk b/libshims/Android.mk
+index b86736b..e9251ff 100644
+--- a/libshims/Android.mk
++++ b/libshims/Android.mk
+@@ -6,3 +6,15 @@ LOCAL_MODULE := libshim_procname
+ LOCAL_MODULE_TAGS := optional
+ LOCAL_PROPRIETARY_MODULE := true
+ include $(BUILD_SHARED_LIBRARY)
++
++# ICU 58 names for Huawei's Oreo audio.primary.msm8937.so (board/shims.mk)
++include $(CLEAR_VARS)
++LOCAL_SRC_FILES := icu58_shim.c
++LOCAL_MODULE := libshim_icu58
++LOCAL_MODULE_TAGS := optional
++LOCAL_C_INCLUDES := external/icu/icu4c/source/common external/icu/android_icu4c/include
++# versioned ICU names on purpose (the shim targets libicuuc's ucnv_*_NN symbols)
++LOCAL_CFLAGS := -DANDROID_LINK_SHARED_ICU4C
++LOCAL_SHARED_LIBRARIES := libdl
++LOCAL_PROPRIETARY_MODULE := true
++include $(BUILD_SHARED_LIBRARY)
+diff --git a/libshims/icu58_shim.c b/libshims/icu58_shim.c
+new file mode 100644
+index 0000000..4f00e76
+--- /dev/null
++++ b/libshims/icu58_shim.c
+@@ -0,0 +1,78 @@
++/*
++ * ICU 58 entry points for Huawei's Oreo audio.primary.msm8937.so on Android 10.
++ * The blob was linked against Oreo's ICU 58, whose C API carries a version suffix
++ * (ucnv_open_58, ...). Android 10 ships ICU 64 (ucnv_open_64, ...), so the HAL failed to
++ * load: "cannot locate symbol UCNV_FROM_U_CALLBACK_STOP_58". Forward to the running ICU.
++ * ICU lives in the runtime APEX on Android 10, so this shim must not link libicuuc (the build
++ * forbids APEX libraries in the system image): the real functions are looked up with dlsym().
++ * The blob itself lists libicuuc.so as NEEDED, so it is already loaded. The versioned names
++ * (ucnv_open_64, ...) come from the ICU headers' own rename macros.
++ */
++#include <dlfcn.h>
++#include <stdlib.h>
++#include <unicode/ucnv.h>
++#include <unicode/ucnv_err.h>
++
++#define STR2(x) #x
++#define STR(x) STR2(x)  /* expands the rename macro: STR(ucnv_open) == "ucnv_open_64" */
++
++static void* icu_sym(const char* name) {
++    static void* handle;
++    void* fn;
++    if (!handle) handle = dlopen("libicuuc.so", RTLD_NOW);
++    fn = handle ? dlsym(handle, name) : NULL;
++    if (!fn) abort();   /* a missing ICU entry point is a build mismatch, not a runtime state */
++    return fn;
++}
++
++/* pointer type from ICU's own prototype; __typeof__ is compile-time only (no link reference) */
++#define FWD(var, name) \
++    static __typeof__(name)* var; \
++    if (!var) var = (__typeof__(name)*)icu_sym(STR(name))
++
++U_CAPI UConverter* U_EXPORT2 ucnv_open_58(const char* name, UErrorCode* err) {
++    FWD(fn, ucnv_open);
++    return fn(name, err);
++}
++
++U_CAPI void U_EXPORT2 ucnv_close_58(UConverter* converter) {
++    FWD(fn, ucnv_close);
++    fn(converter);
++}
++
++U_CAPI void U_EXPORT2 ucnv_convertEx_58(UConverter* targetCnv, UConverter* sourceCnv,
++        char** target, const char* targetLimit, const char** source, const char* sourceLimit,
++        UChar* pivotStart, UChar** pivotSource, UChar** pivotTarget, const UChar* pivotLimit,
++        UBool reset, UBool flush, UErrorCode* pErrorCode) {
++    FWD(fn, ucnv_convertEx);
++    fn(targetCnv, sourceCnv, target, targetLimit, source, sourceLimit, pivotStart, pivotSource,
++       pivotTarget, pivotLimit, reset, flush, pErrorCode);
++}
++
++U_CAPI void U_EXPORT2 ucnv_setFromUCallBack_58(UConverter* converter,
++        UConverterFromUCallback newAction, const void* newContext,
++        UConverterFromUCallback* oldAction, const void** oldContext, UErrorCode* err) {
++    FWD(fn, ucnv_setFromUCallBack);
++    fn(converter, newAction, newContext, oldAction, oldContext, err);
++}
++
++U_CAPI void U_EXPORT2 ucnv_setToUCallBack_58(UConverter* converter,
++        UConverterToUCallback newAction, const void* newContext,
++        UConverterToUCallback* oldAction, const void** oldContext, UErrorCode* err) {
++    FWD(fn, ucnv_setToUCallBack);
++    fn(converter, newAction, newContext, oldAction, oldContext, err);
++}
++
++U_CAPI void U_EXPORT2 UCNV_FROM_U_CALLBACK_STOP_58(const void* context,
++        UConverterFromUnicodeArgs* fromUArgs, const UChar* codeUnits, int32_t length,
++        UChar32 codePoint, UConverterCallbackReason reason, UErrorCode* err) {
++    FWD(fn, UCNV_FROM_U_CALLBACK_STOP);
++    fn(context, fromUArgs, codeUnits, length, codePoint, reason, err);
++}
++
++U_CAPI void U_EXPORT2 UCNV_TO_U_CALLBACK_STOP_58(const void* context,
++        UConverterToUnicodeArgs* toUArgs, const char* codeUnits, int32_t length,
++        UConverterCallbackReason reason, UErrorCode* err) {
++    FWD(fn, UCNV_TO_U_CALLBACK_STOP);
++    fn(context, toUArgs, codeUnits, length, reason, err);
++}

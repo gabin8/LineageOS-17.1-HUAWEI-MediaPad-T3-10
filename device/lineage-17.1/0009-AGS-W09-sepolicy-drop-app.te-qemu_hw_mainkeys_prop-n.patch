@@ -1,7 +1,7 @@
 From 25f12144be1fab8932d62181b49c52f4da3d04f1 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 17:03:21 +0200
-Subject: [PATCH 09/17] AGS-W09 sepolicy: drop app.te (qemu_hw_mainkeys_prop no
+Subject: [PATCH 09/20] AGS-W09 sepolicy: drop app.te (qemu_hw_mainkeys_prop no
  longer exists on Q)
 
 ---

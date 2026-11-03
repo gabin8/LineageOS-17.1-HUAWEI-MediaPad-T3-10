@@ -1,7 +1,7 @@
 From 9742ba96ea0d43fdc7339ae32792c1fc5b2f2c42 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:27:02 +0200
-Subject: [PATCH 07/17] AGS-W09: BUILD_BROKEN_DUP_RULES for the stage A blob
+Subject: [PATCH 07/20] AGS-W09: BUILD_BROKEN_DUP_RULES for the stage A blob
  overlaps
 
 ---

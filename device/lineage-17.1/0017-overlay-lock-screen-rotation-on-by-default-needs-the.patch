@@ -1,7 +1,7 @@
 From 7685a9c0822f37f9e79b2adb04b305bba4bf3a9e Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 23:11:05 +0200
-Subject: [PATCH 17/17] overlay: lock screen rotation on by default (needs the
+Subject: [PATCH 17/20] overlay: lock screen rotation on by default (needs the
  lineage-sdk def_lockscreen_rotation patch)
 
 ---

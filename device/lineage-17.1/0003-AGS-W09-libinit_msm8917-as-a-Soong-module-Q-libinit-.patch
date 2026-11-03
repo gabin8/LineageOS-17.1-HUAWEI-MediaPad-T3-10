@@ -1,7 +1,7 @@
 From 8dee0c2d6fb7f92950b9fbb5cd4afd3df993bad9 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:21:14 +0200
-Subject: [PATCH 03/17] AGS-W09: libinit_msm8917 as a Soong module (Q libinit
+Subject: [PATCH 03/20] AGS-W09: libinit_msm8917 as a Soong module (Q libinit
  is Soong)
 
 ---

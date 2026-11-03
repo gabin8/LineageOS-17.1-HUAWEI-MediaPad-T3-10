@@ -1,7 +1,7 @@
 From 440e8acae708ef0f5c3f481c1beb0d8df8e33def Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 23:02:38 +0200
-Subject: [PATCH 16/17] wifi: wpa_supplicant on the Android 10 config paths
+Subject: [PATCH 16/20] wifi: wpa_supplicant on the Android 10 config paths
  (/data/vendor/wifi/wpa, created by wificond)
 
 ---

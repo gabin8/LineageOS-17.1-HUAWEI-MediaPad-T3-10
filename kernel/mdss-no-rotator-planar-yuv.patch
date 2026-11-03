@@ -1,0 +1,42 @@
+From a2918e1b63166e462bd6f2520a313b3e1abce5ed Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 00:42:18 +0200
+Subject: [PATCH] mdss: no writeback-rotator for 3-plane YUV
+
+Rotating YV12 (MDP_Y_CR_CB_GH2V2) through the WB rotator gave black frames:
+Android 10's software video decoders (c2.android.vp9) output YV12, and in
+landscape the panel (natively portrait) needs ROT_90, so VP9 video played
+as black with audio. Hardware decoders output Venus NV12, unaffected.
+Without VALID_ROT_WB_FORMAT SDM falls back to GPU composition for these
+rotated layers, which renders them correctly.
+---
+ drivers/video/msm/mdss/mdss_mdp_formats.h | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/video/msm/mdss/mdss_mdp_formats.h b/drivers/video/msm/mdss/mdss_mdp_formats.h
+index c4c6e3c7..038a0b51 100755
+--- a/drivers/video/msm/mdss/mdss_mdp_formats.h
++++ b/drivers/video/msm/mdss/mdss_mdp_formats.h
+@@ -371,14 +371,19 @@ static struct mdss_mdp_format_params mdss_mdp_format_map[] = {
+ 		MDSS_MDP_CHROMA_420, VALID_ROT_WB_FORMAT |
+ 		VALID_MDP_WB_INTF_FORMAT, C2_R_Cr, C1_B_Cb),
+ 
++	/*
++	 * 3-plane YUV is not offered to the writeback rotator: rotating it produced black frames
++	 * (YV12 from Android 10's software video decoders in landscape). Without the flag SDM
++	 * composes such rotated layers on the GPU instead.
++	 */
+ 	FMT_YUV_PLANR(MDP_Y_CB_CR_H2V2, MDSS_MDP_FETCH_LINEAR,
+-		MDSS_MDP_CHROMA_420, VALID_ROT_WB_FORMAT |
++		MDSS_MDP_CHROMA_420,
+ 		VALID_MDP_WB_INTF_FORMAT, C2_R_Cr, C1_B_Cb),
+ 	FMT_YUV_PLANR(MDP_Y_CR_CB_H2V2, MDSS_MDP_FETCH_LINEAR,
+-		MDSS_MDP_CHROMA_420, VALID_ROT_WB_FORMAT |
++		MDSS_MDP_CHROMA_420,
+ 		VALID_MDP_WB_INTF_FORMAT, C1_B_Cb, C2_R_Cr),
+ 	FMT_YUV_PLANR(MDP_Y_CR_CB_GH2V2, MDSS_MDP_FETCH_LINEAR,
+-		MDSS_MDP_CHROMA_420, VALID_ROT_WB_FORMAT |
++		MDSS_MDP_CHROMA_420,
+ 		VALID_MDP_WB_INTF_FORMAT, C1_B_Cb, C2_R_Cr),
+ 
+ 	{

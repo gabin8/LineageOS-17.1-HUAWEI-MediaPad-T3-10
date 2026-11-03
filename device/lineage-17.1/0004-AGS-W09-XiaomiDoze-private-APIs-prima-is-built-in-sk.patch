@@ -1,7 +1,7 @@
 From 29f5e1dbf9d983c31dd956ab3ad767cddc3651da Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:23:56 +0200
-Subject: [PATCH 04/17] AGS-W09: XiaomiDoze private APIs; prima is built in
+Subject: [PATCH 04/20] AGS-W09: XiaomiDoze private APIs; prima is built in
  (skip its DLKM makefile)
 
 ---

@@ -1,7 +1,7 @@
 From 04a1e3dae6aac5f8251d3075b59832065f37f880 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 17:40:24 +0200
-Subject: [PATCH 10/17] AGS-W09 config.fs: OEM AIDs as AID_VENDOR_* (required
+Subject: [PATCH 10/20] AGS-W09 config.fs: OEM AIDs as AID_VENDOR_* (required
  on Q; values unchanged)
 
 ---

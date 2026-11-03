@@ -1,0 +1,22 @@
+From 3cbaa012e8ce24b82eeccbc127e47088d66549e1 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 00:28:43 +0200
+Subject: [PATCH 20/20] hwui: no EGL buffer age (Oreo Adreno + Android 10:
+ stale garbage in the volume panel window)
+
+---
+ system.prop | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/system.prop b/system.prop
+index c5d9884..9d2b107 100644
+--- a/system.prop
++++ b/system.prop
+@@ -6,3 +6,7 @@ ro.logd.kernel=false
+ 
+ # Stock marketing name (About tablet, Settings patch)
+ ro.config.marketing_name=HUAWEI MediaPad T3 10
++
++# HWUI partial redraw trusts EGL buffer age; the Oreo Adreno driver reports it wrong on Android 10,
++# so translucent full-screen windows (SystemUI volume panel) kept stale garbage across the screen.
++debug.hwui.use_buffer_age=false

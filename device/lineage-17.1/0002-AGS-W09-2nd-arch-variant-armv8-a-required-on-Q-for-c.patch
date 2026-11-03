@@ -1,7 +1,7 @@
 From a9b9f9167cf12347c9b12a4d3a565354a88562dd Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:18:01 +0200
-Subject: [PATCH 02/17] AGS-W09: 2nd arch variant armv8-a (required on Q for
+Subject: [PATCH 02/20] AGS-W09: 2nd arch variant armv8-a (required on Q for
  cortex-a53)
 
 ---

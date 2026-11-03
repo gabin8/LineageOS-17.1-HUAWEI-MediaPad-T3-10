@@ -1,7 +1,7 @@
 From 7a621c393c35c3385c98f2015b6e19e9660aea40 Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 19:32:38 +0200
-Subject: [PATCH 11/17] manifest: drop cas@1.0, Q base_vendor ships
+Subject: [PATCH 11/20] manifest: drop cas@1.0, Q base_vendor ships
  cas@1.1-service with its own VINTF fragment
 
 ---

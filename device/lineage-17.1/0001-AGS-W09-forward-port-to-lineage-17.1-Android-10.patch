@@ -1,7 +1,7 @@
 From 3eb0542811dce9a2c364b607f3272344c8f12d4e Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 16:17:24 +0200
-Subject: [PATCH 01/17] AGS-W09: forward-port to lineage-17.1 (Android 10)
+Subject: [PATCH 01/20] AGS-W09: forward-port to lineage-17.1 (Android 10)
 
 - AndroidProducts.mk + lineage_ags_w09.mk; own Android 10 fingerprint
 - flattened APEX, qcom sepolicy-legacy-um, system.prop for system-side props

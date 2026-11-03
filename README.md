@@ -23,9 +23,15 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   `device/device-tree.patch` (the 15.1 v2 state), then the lineage-17.1 port on top:
   [`device/lineage-17.1/`](device/lineage-17.1/) — a `git am` series, one commit per Android 10
   change, applied with `device/lineage-17.1/apply.sh` (legacy, non-Treble build like 15.1).
-- **Frameworks:** `frameworks/*.patch` (the 15.1 ones apply where still needed);
-  `frameworks/lineage-sdk-lockscreen-rotation-default.patch` lets the device overlay turn LineageOS's
-  "Rotate lock screen" on by default (15.1 needed a manual toggle, fix 41).
+- **Frameworks:** `frameworks/*.patch` (the 15.1 ones apply where still needed). Android 10 ones:
+  - `system_core-sdcard-fuse-fallback.patch` — Android 10 dropped the FUSE sdcard daemon and needs
+    AOSP sdcardfs or esdfs; this kernel's sdcardfs is the older Samsung one (as on stock EMUI and
+    15.1, storage runs over FUSE). Oreo's FUSE code, plus Q's 4th `full` view, forking for vold.
+  - `av-swcodec-ldconfig-legacy-sphal.patch` — the software codecs' APEX could not load the vendor
+    gralloc mapper on a non-VNDK build (`gralloc-mapper is missing`, VP9 crashed the player).
+  - `SetupWizard-no-emergency-call-without-voice.patch` — no "Emergency call" on a Wi-Fi tablet.
+  - `lineage-sdk-lockscreen-rotation-default.patch` — overlayable "Rotate lock screen" default
+    (15.1 needed a manual toggle, fix 41).
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -53,7 +59,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration) OK |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, agassi ACDB), video (HW H.264/HEVC/VP8, SW VP9) OK; camera next |
 | 4. SELinux enforcing | — |
 | 5. Reproducible vendor + release | — |
 

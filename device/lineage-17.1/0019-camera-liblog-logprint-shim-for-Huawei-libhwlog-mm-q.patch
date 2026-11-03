@@ -1,0 +1,79 @@
+From 9f2a2f7344f99fe9bc06a9ba00ad5e76fe0cda91 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Tue, 3 Nov 2026 23:41:04 +0200
+Subject: [PATCH 19/20] camera: liblog logprint shim for Huawei libhwlog
+ (mm-qcamera-daemon could not link)
+
+---
+ board/shims.mk        |  3 +++
+ device.mk             |  3 ++-
+ libshims/Android.mk   |  9 +++++++++
+ libshims/hwlog_shim.c | 20 ++++++++++++++++++++
+ 4 files changed, 34 insertions(+), 1 deletion(-)
+ create mode 100644 libshims/hwlog_shim.c
+
+diff --git a/board/shims.mk b/board/shims.mk
+index dad880c..2bc4e9a 100644
+--- a/board/shims.mk
++++ b/board/shims.mk
+@@ -3,3 +3,6 @@ TARGET_LD_SHIM_LIBS := \
+     /vendor/lib/libizat_core.so|libshim_procname.so \
+     /vendor/lib/hw/audio.primary.msm8937.so|libshim_icu58.so \
+     /vendor/lib64/hw/audio.primary.msm8937.so|libshim_icu58.so
++TARGET_LD_SHIM_LIBS += \
++    /vendor/lib/libhwlog.so|libshim_hwlog.so \
++    /vendor/lib64/libhwlog.so|libshim_hwlog.so
+diff --git a/device.mk b/device.mk
+index cc01cf1..c188218 100644
+--- a/device.mk
++++ b/device.mk
+@@ -47,4 +47,5 @@ PRODUCT_COPY_FILES += \
+ # Shims
+ PRODUCT_PACKAGES += \
+     libshim_procname \
+-    libshim_icu58
++    libshim_icu58 \
++    libshim_hwlog
+diff --git a/libshims/Android.mk b/libshims/Android.mk
+index e9251ff..bb052b1 100644
+--- a/libshims/Android.mk
++++ b/libshims/Android.mk
+@@ -18,3 +18,12 @@ LOCAL_CFLAGS := -DANDROID_LINK_SHARED_ICU4C
+ LOCAL_SHARED_LIBRARIES := libdl
+ LOCAL_PROPRIETARY_MODULE := true
+ include $(BUILD_SHARED_LIBRARY)
++
++# logprint API for Huawei's libhwlog (board/shims.mk)
++include $(CLEAR_VARS)
++LOCAL_SRC_FILES := hwlog_shim.c
++LOCAL_MODULE := libshim_hwlog
++LOCAL_MODULE_TAGS := optional
++LOCAL_HEADER_LIBRARIES := liblog_headers
++LOCAL_PROPRIETARY_MODULE := true
++include $(BUILD_SHARED_LIBRARY)
+diff --git a/libshims/hwlog_shim.c b/libshims/hwlog_shim.c
+new file mode 100644
+index 0000000..42d0cfd
+--- /dev/null
++++ b/libshims/hwlog_shim.c
+@@ -0,0 +1,20 @@
++/*
++ * liblog's logprint API for Huawei's Oreo /vendor/lib{,64}/libhwlog.so on Android 10.
++ * Android 10's liblog no longer exports android_log_shouldPrintLine/android_log_printLogLine,
++ * so everything linking libhwlog failed to load, e.g. the camera daemon:
++ *   CANNOT LINK EXECUTABLE "/vendor/bin/mm-qcamera-daemon": cannot locate symbol
++ *   "android_log_shouldPrintLine" referenced by "/vendor/lib/libhwlog.so"
++ * libhwlog imports nothing else from logprint (no android_log_format_new), so these are only
++ * used on its print-to-file path: report "do not print" and print nothing. Logcat is unaffected.
++ */
++#include <log/logprint.h>
++
++int android_log_shouldPrintLine(AndroidLogFormat* p_format __unused, const char* tag __unused,
++                                android_LogPriority pri __unused) {
++    return 0;
++}
++
++int android_log_printLogLine(AndroidLogFormat* p_format __unused, int fd __unused,
++                             const AndroidLogEntry* entry __unused) {
++    return 0;
++}

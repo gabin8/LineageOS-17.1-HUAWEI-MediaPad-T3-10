@@ -4,7 +4,7 @@
 # 0. copy binder/{*.c,*.h,Kconfig,Makefile} to drivers/staging/android/ and
 #    binder/uapi/binder.h to drivers/staging/android/uapi/   (15.1 fix 3)
 # Steps 0-5 reproduce the 15.1 v2 kernel source exactly (verified 2026-11-03 against the tree
-# that built v15.1-20261102); 6-8 are the Android 10 additions.
+# that built v15.1-20261102); 6-9 are the Android 10 additions.
 oreo-camera-v2.patch            # 1. camera UAPI + camera debug off (15.1 fix 33)
 lcdkit-cabc-restore.patch       # 2. panel CABC (15.1 fix 50)
 backend-dai-name-table.patch    # 3. audio routing (15.1 fix 57)
@@ -13,4 +13,5 @@ prima-mdns-filter-oops.patch    # 5. patch -p1 from the kernel root (touches the
 ambient-caps-3.18.patch         # 6. upstream v4.3 backport; REQUIRED on Android 10 (15.1 fix 4)
 dcheck-root-err-ptr.patch       # 7. replaces the 15.1 ramdisk default.prop workaround (fix 7)
 defconfig-android10.patch       # 8. IKCONFIG_PROC on, DEVMEM/USELIB off
+mdss-no-rotator-planar-yuv.patch # 9. no WB rotator for 3-plane YUV (black VP9 video in landscape)
 # Build: scripts/build-kernel.sh <lineage tree> <out dir>

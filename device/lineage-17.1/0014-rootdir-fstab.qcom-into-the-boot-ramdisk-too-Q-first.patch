@@ -1,7 +1,7 @@
 From cbdfb04972f45fcbc94c955618ccc7268ad239ac Mon Sep 17 00:00:00 2001
 From: builder <builder@localhost>
 Date: Tue, 3 Nov 2026 19:42:34 +0200
-Subject: [PATCH 14/17] rootdir: fstab.qcom into the boot ramdisk too (Q
+Subject: [PATCH 14/20] rootdir: fstab.qcom into the boot ramdisk too (Q
  first-stage init reads it there; root is inside system.img)
 
 ---

@@ -18,7 +18,12 @@
 #     getpid, sched_setscheduler). The Oreo policy SIGSYS-killed the service under Q libs, and Q
 #     libEGL's eglInitialize waits for ISurfaceFlingerConfigs: system_server hung at the first
 #     screen-off, PowerManager blocked, touch looked dead, watchdog restart.
+#     libshim_icu58 (device libshims): ICU 58 names for Huawei's audio.primary; the system linker
+#     attaches it (TARGET_LD_SHIM_LIBS), the library itself lives on the vendor partition.
+#     libshim_hwlog: liblog's logprint API for Huawei's libhwlog (camera daemon could not link).
 #  5. Park the 15.1 livedisplay@1.0 sdm service rc (interface dropped in 17.1; cannot link).
+#  7. media_codecs_performance.xml: two update entries rewritten to the form Q's parser accepts
+#     (else no codecs at all); debug.sf.latch_unsignaled=0 (Q client composition showed garbage).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -32,7 +37,8 @@ lib/hw/android.hardware.audio@2.0-impl.so lib/hw/android.hardware.audio.effect@2
 lib/hw/android.hardware.keymaster@3.0-impl.so lib/hw/android.hardware.sensors@1.0-impl.so
 lib64/libhwminijail.so lib64/libkeymaster3device.so lib64/libwifi-hal.so
 lib64/hw/android.hardware.audio@2.0-impl.so lib64/hw/android.hardware.audio.effect@2.0-impl.so
-lib64/hw/android.hardware.keymaster@3.0-impl.so lib64/hw/android.hardware.sensors@1.0-impl.so"
+lib64/hw/android.hardware.keymaster@3.0-impl.so lib64/hw/android.hardware.sensors@1.0-impl.so
+lib/libshim_icu58.so lib64/libshim_icu58.so lib/libshim_hwlog.so lib64/libshim_hwlog.so"
 S=$(mktemp -d); trap 'rm -rf "${S:?}"' EXIT
 for f in $SWAP; do mkdir -p "$S/${f%/*}"; cp "$OUT/$f" "$S/$f"; done
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
@@ -49,6 +55,22 @@ mount -t ext4 -o rw $B/vendor /vendor
 [ "$(readlink -f "$(awk '$2=="/vendor"{print $1}' /proc/mounts)")" = "$(readlink -f $B/vendor)" ] \
     || { echo "/vendor is not the vendor partition"; exit 1; }
 EOF
+# media_codecs_performance.xml: Q's MediaCodecsXmlParser rejects an update="true" entry whose type
+# is given as a nested <Type> instead of a type= attribute ("cannot update codec without type
+# specified"); the BAD_VALUE empties the whole OMX store and MediaCodecList, so no audio or video
+# codec at all (not even Codec2). Rewrite those entries to the attribute form; limits unchanged.
+adb pull /vendor/etc/media_codecs_performance.xml "$S/perf.xml" >/dev/null
+python3 - "$S/perf.xml" "$S/etc/media_codecs_performance.xml" <<'EOF'
+import re, sys
+s = open(sys.argv[1]).read()
+pat = re.compile(r'<MediaCodec name="([^"]+)" update="true">\s*<Type name="([^"]+)">(.*?)</Type>\s*'
+                 r'</MediaCodec>', re.S)
+def rep(m):
+    lines = ''.join('\n            ' + l.strip() for l in m.group(3).strip().splitlines() if l.strip())
+    return f'<MediaCodec name="{m.group(1)}" type="{m.group(2)}" update="true">{lines}\n        </MediaCodec>'
+open(sys.argv[2], 'w').write(pat.sub(rep, s))
+EOF
+rm -f "$S/perf.xml"
 adb shell rm -rf /tmp/a2files
 adb push "$S" /tmp/a2files >/dev/null
 adb shell sh -s <<'EOF'
@@ -73,6 +95,9 @@ W=/vendor/etc/init/android.hardware.wifi@1.0-service.rc   # Q HAL sets wlan0 up 
 grep -q '^    capabilities NET_ADMIN' $W || sed -i 's/^    class hal$/    class hal\n    capabilities NET_ADMIN NET_RAW SYS_MODULE/' $W
 R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 [ ! -e $R ] || mv $R /vendor/etc/init-disabled/
+# Q client (GPU) composition breaks with SurfaceFlinger latching unsignaled buffers (15.1/stock
+# vendor build.prop set 1): volume panel and any GPU-fallback frame showed garbage on screen.
+sed -i 's/^debug.sf.latch_unsignaled=1$/debug.sf.latch_unsignaled=0/' /vendor/build.prop
 P=/vendor/default.prop
 grep -q '^persist.sys.usb.config=adb' $P || printf '%s\n' \
     '# stage A2 bring-up: adb on at boot without authorization (remove before release)' \
