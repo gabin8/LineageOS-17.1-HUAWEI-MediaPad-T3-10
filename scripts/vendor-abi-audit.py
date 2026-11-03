@@ -6,7 +6,7 @@
 
 <system root> is a directory holding lib/ and lib64/ (an extracted /system, or
 out/target/product/<dev>/system); flattened APEX libs under <system root>/apex/*/lib{,64}[/bionic]
-are searched too. For each vendor ELF it resolves DT_NEEDED transitively (system, then APEX, then
+are searched after the vendor lib dir. For each vendor ELF it resolves DT_NEEDED transitively (system, then APEX, then
 the vendor lib dir: the legacy, namespace-less linker search order) and reports
   - missing_libs:   NEEDED libraries found nowhere
   - unresolved:     undefined non-weak dynamic symbols not defined anywhere in the ELF's own
@@ -20,7 +20,9 @@ Needs GNU readelf.
 import json, os, re, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 
-SYM_RE = re.compile(r'^\s*\d+:\s+[0-9a-fA-F]+\s+\S+\s+(\w+)\s+(\w+)\s+\w+\s+(\S+)\s+(\S+)')
+# type is a word, or e.g. "<OS specific>: 10" (STT_GNU_IFUNC on non-GNU-OSABI ELFs: Q bionic's
+# memcpy/strlen/... are IFUNCs)
+SYM_RE = re.compile(r'^\s*\d+:\s+[0-9a-fA-F]+\s+\S+\s+(\w+|<[^>]+>:\s*\d+)\s+(\w+)\s+\w+\s+(\S+)\s+(\S+)')
 
 
 def is_elf(path):
@@ -58,9 +60,9 @@ def read_elf(path):
     return {'needed': needed, 'defined': defined, 'undef': undef, 'bits': elf_class(path)}
 
 
-def lib_dirs(root, bits):
+def apex_dirs(root, bits):
     sub = 'lib64' if bits == 64 else 'lib'
-    dirs = [os.path.join(root, sub)]
+    dirs = []
     apex = os.path.join(root, 'apex')
     if os.path.isdir(apex):
         for a in sorted(os.listdir(apex)):
@@ -77,9 +79,12 @@ def audit(vendor, system, shims):
             p = os.path.join(dp, fn)
             if not os.path.islink(p) and is_elf(p):
                 elves.append(p)
-    # legacy (namespace-less) linker order: /system/${LIB} (+ APEX), then /vendor/${LIB}. The EMUI
-    # vendor ships its own older libcutils/libutils/...; the system copies win.
-    search = {b: lib_dirs(system, b) + [os.path.join(vendor, 'lib64' if b == 64 else 'lib')]
+    # legacy (non-Treble) linker order, Q ld.config.legacy.txt: the default namespace searches
+    # /system/${LIB} then /vendor/${LIB}; only then are runtime-APEX libs reached via its link.
+    # So the EMUI vendor's old libcutils/libutils/... lose to /system, but a vendor copy of a lib Q
+    # moved into an APEX (libnativeloader, libnativebridge) WINS over the APEX one.
+    search = {b: [os.path.join(system, 'lib64' if b == 64 else 'lib'),
+                  os.path.join(vendor, 'lib64' if b == 64 else 'lib')] + apex_dirs(system, b)
               for b in (32, 64)}
     libs = {}  # (bits, name) -> path
     for b, dirs in search.items():

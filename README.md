@@ -1,6 +1,7 @@
 # LineageOS 17.1 for HUAWEI MediaPad T3 10 (AGS-W09, codename "agassi")
 
-**Status: work in progress — not bootable yet.** This is the Android 10 follow-up to the
+**Status: work in progress — boots to the home screen (first boot 2026-11-03); hardware bring-up
+ongoing.** This is the Android 10 follow-up to the
 [LineageOS 15.1 port](https://github.com/gabin8/LineageOS-15.1-HUAWEI-MediaPad-T3-10), which is
 daily-usable. **If you want a working ROM today, use 15.1.**
 
@@ -24,16 +25,30 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
 
+### Running Android 10 on the Oreo vendor (stage A)
+The device keeps the 15.1 v2 vendor partition; two scripts adapt it, each step documented inline:
+- [`vendor/stage-a-android10.sh`](vendor/stage-a-android10.sh) — before the first flash: neutralise
+  the vendor `init.qcom.rc` (Android 10 now imports it), match the vendor fingerprint, and install the
+  vendor half of the split SELinux policy (Android 10 always loads split policy).
+- [`vendor/stage-a2-android10.sh`](vendor/stage-a2-android10.sh) — from a root recovery: the Oreo
+  `vndservicemanager` cannot talk to Android 10's libbinder (no display), the vendor's Oreo
+  `libnativeloader` shadows Android 10's APEX copy (no zygote), Oreo-built HIDL wrappers do not link,
+  configstore's Oreo seccomp policy kills it (system_server hang at screen-off).
+- [`scripts/vendor-abi-audit.py`](scripts/vendor-abi-audit.py) finds such breaks offline (legacy
+  linker order: `/system`, then `/vendor`, then the APEX link);
+  [`scripts/verify-system-img.sh`](scripts/verify-system-img.sh) checks the root directory inside
+  `system.img` before flashing (Android 10 builds it system-as-root on every device).
+
 The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix chain, kept here as
 [`docs/lineage-15.1-README.md`](docs/lineage-15.1-README.md) (snapshot at v15.1-20261102).
 
 ## Progress
 | Phase | State |
 |---|---|
-| 0. Prep: lineage-17.1 sync, kernel config audit, backups | in progress |
-| 1. First boot to adb (Android 10 init, first-stage mount, permissive) | — |
-| 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | — |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | — |
+| 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
+| 1. First boot to adb (Android 10 init, first-stage mount, permissive) | done: boots unassisted in ~40 s, setup wizard, launcher |
+| 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors, charging OK |
 | 4. SELinux enforcing | — |
 | 5. Reproducible vendor + release | — |
 
