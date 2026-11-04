@@ -1,0 +1,42 @@
+From 7642b6f4c3ce3a0f77e3dd3819f7c12e07f858c3 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 18:04:14 +0200
+Subject: [PATCH 23/23] SELinux enforcing: drop the permissive cmdline and a
+ debug knob
+
+androidboot.selinux=permissive was for bring-up; the policy now covers
+the boot and every feature 15.1 had. Also drop the early-init write of
+kernel.print-fatal-signals=1 (dumped registers to the kernel log on
+every app crash; init may not write it under enforcing anyway).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ board/kernel.mk      | 2 +-
+ rootdir/init.qcom.rc | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/board/kernel.mk b/board/kernel.mk
+index 5b616f5..a86df63 100644
+--- a/board/kernel.mk
++++ b/board/kernel.mk
+@@ -1,6 +1,6 @@
+ # kernel
+ BOARD_KERNEL_BASE := 0x80000000
+-BOARD_KERNEL_CMDLINE := androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 androidboot.bootdevice=7824900.sdhci earlycon=msm_hsl_uart,0x78B0000 androidboot.selinux=permissive
++BOARD_KERNEL_CMDLINE := androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 androidboot.bootdevice=7824900.sdhci earlycon=msm_hsl_uart,0x78B0000
+ TARGET_KERNEL_CONFIG := merge_msm8937_64_defconfig
+ BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
+ BOARD_KERNEL_PAGESIZE :=  2048
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index 79d032d..134b9da 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -1,5 +1,3 @@
+-on early-init
+-    write /proc/sys/kernel/print-fatal-signals 1
+ on fs
+     mount_all /fstab.qcom
+     # FunctionFS backing for adb: this kernel's android_usb adb function is ffs-backed;
+-- 
+2.53.0
+

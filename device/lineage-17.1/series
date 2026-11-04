@@ -19,3 +19,5 @@
 0019-camera-liblog-logprint-shim-for-Huawei-libhwlog-mm-q.patch
 0020-hwui-no-EGL-buffer-age-Oreo-Adreno-Android-10-stale-.patch
 0021-wifi-create-the-supplicant-configs-at-post-fs-data-W.patch
+0022-sepolicy-Android-10-rules-for-SELinux-enforcing.patch
+0023-SELinux-enforcing-drop-the-permissive-cmdline-and-a-.patch

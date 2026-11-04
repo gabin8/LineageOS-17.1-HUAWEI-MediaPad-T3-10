@@ -19,6 +19,10 @@ daily-usable. **If you want a working ROM today, use 15.1.**
 A forward-port of the 15.1 port, not a new port. This repository starts from the 15.1 history.
 - **Kernel:** unchanged — clienthax's Huawei 3.18 kernel with the patches in `kernel/`.
   Ambient capabilities (`kernel/ambient-caps-3.18.patch`) become required on Android 10.
+  `kernel/mmput-async-3.18.patch` fixes a kernel panic that 15.1 had too: the binder driver
+  backported in 15.1 (fix 3) had `mmput_async()` replaced by `mmput()`, which may sleep, and its
+  memory shrinker calls it with a spinlock held. Under memory pressure (several apps open)
+  `kswapd` hit it and the tablet rebooted into the Qualcomm crash-dump mode.
 - **Device tree:** clienthax's `android_device_huawei_ags_w09` (lineage-15.1) with
   `device/device-tree.patch` (the 15.1 v2 state), then the lineage-17.1 port on top:
   [`device/lineage-17.1/`](device/lineage-17.1/) — a `git am` series, one commit per Android 10
@@ -73,10 +77,10 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | Phase | State |
 |---|---|
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
-| 1. First boot to adb (Android 10 init, first-stage mount, permissive) | done: boots unassisted in ~40 s, setup wizard, launcher |
+| 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front, preview and photo) OK; notification shade at 60 fps over the launcher |
-| 4. SELinux enforcing | — |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher |
+| 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 
 ## ⚠️ This unit runs a flashed engineering QRD bootloader
