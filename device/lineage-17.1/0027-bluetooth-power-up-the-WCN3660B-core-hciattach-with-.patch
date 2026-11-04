@@ -1,0 +1,173 @@
+From 069f845edaafb32cfb2da9e6e390da7fe33d5ac0 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 22:04:30 +0200
+Subject: [PATCH] bluetooth: power up the WCN3660B core (hciattach) with its
+ factory address
+
+libbt-vendor (prebuilt) brings the SMD Bluetooth core up by setting
+bluetooth.hciattach=true and waiting for bluetooth.status=on; stock EMUI
+did that in its vendor init.qcom.rc, which this build does not import.
+
+- init.ags_w09.bt.rc (/vendor/etc/init): the hciattach service
+  (hci_qcomm_init) and the property triggers. bluetooth.status is set
+  only once hci_qcomm_init has exited: stock set it right away, and the
+  stack's first HCI commands raced its vendor commands on the same SMD
+  channel (first enable after boot timed out and Bluetooth restarted).
+  Group system: the factory BD address comes from oeminfo through the
+  oeminfo_nvm socket (root:system 0660); without it hci_qcomm_init fell
+  back to a random address and cached it.
+- sepolicy: bluetooth_loader domain for hci_qcomm_init (SMD channel,
+  oeminfo_nvm socket and its /dev/oinv reply files, the address cache in
+  /data/misc/bluedroid, /proc/connectivity labelled proc_connectivity);
+  wc_transport.* (libbt-vendor's unprefixed vendor.wc_transport.*) as
+  vendor_bluetooth_prop, so the HAL can hand the address to the stack.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ product/bluetooth.mk         |  1 +
+ rootdir/Android.mk           |  9 +++++++++
+ rootdir/init.ags_w09.bt.rc   | 22 ++++++++++++++++++++++
+ sepolicy/bluetooth_loader.te | 21 +++++++++++++++++++++
+ sepolicy/file.te             |  2 ++
+ sepolicy/file_contexts       |  1 +
+ sepolicy/genfs_contexts      |  1 +
+ sepolicy/property_contexts   |  2 ++
+ sepolicy/vendor_dir.te       |  2 +-
+ 9 files changed, 60 insertions(+), 1 deletion(-)
+ create mode 100644 rootdir/init.ags_w09.bt.rc
+ create mode 100644 sepolicy/bluetooth_loader.te
+
+diff --git a/product/bluetooth.mk b/product/bluetooth.mk
+index 6bdf57a..f2a6010 100644
+--- a/product/bluetooth.mk
++++ b/product/bluetooth.mk
+@@ -15,4 +15,5 @@ PRODUCT_PROPERTY_OVERRIDES += \
+ PRODUCT_PACKAGES += \
+     android.hardware.bluetooth@1.0-impl \
+     android.hardware.bluetooth@1.0-service \
++    init.ags_w09.bt.rc \
+     libbt-vendor
+diff --git a/rootdir/Android.mk b/rootdir/Android.mk
+index 7becace..020de64 100644
+--- a/rootdir/Android.mk
++++ b/rootdir/Android.mk
+@@ -47,6 +47,15 @@ LOCAL_SRC_FILES    := init.ags_w09.usb.rc
+ LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init
+ include $(BUILD_PREBUILT)
+ 
++# Bluetooth power-up (hciattach), likewise in /vendor/etc/init.
++include $(CLEAR_VARS)
++LOCAL_MODULE       := init.ags_w09.bt.rc
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := init.ags_w09.bt.rc
++LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init
++include $(BUILD_PREBUILT)
++
+ define ags_w09_vendor_script
+ include $$(CLEAR_VARS)
+ LOCAL_MODULE       := $(1)
+diff --git a/rootdir/init.ags_w09.bt.rc b/rootdir/init.ags_w09.bt.rc
+new file mode 100644
+index 0000000..6ae9898
+--- /dev/null
++++ b/rootdir/init.ags_w09.bt.rc
+@@ -0,0 +1,22 @@
++# Bluetooth (WCN3660B over SMD). libbt-vendor powers the core up by setting bluetooth.hciattach=true
++# and waiting for bluetooth.status=on; stock EMUI did this in its vendor init.qcom.rc.
++service hciattach /vendor/bin/hci_qcomm_init -e
++    class late_start
++    user bluetooth
++    # system: the oeminfo_nvm socket (root:system 0660) holds the factory BD address
++    group bluetooth net_bt_admin oem_2950 diag radio system
++    disabled
++    oneshot
++
++# Report the core ready only once hci_qcomm_init has exited: stock set bluetooth.status right after
++# starting it, so the stack's first HCI commands raced its vendor commands on the same SMD channel
++# (first enable after boot timed out on 0x1004 and Bluetooth restarted). One run per boot:
++# libbt-vendor sets hciattach only while bluetooth.status is not "on".
++on property:bluetooth.hciattach=true
++    start hciattach
++
++on property:init.svc.hciattach=stopped && property:bluetooth.hciattach=true
++    setprop bluetooth.status on
++
++on property:bluetooth.hciattach=false
++    setprop bluetooth.status off
+diff --git a/sepolicy/bluetooth_loader.te b/sepolicy/bluetooth_loader.te
+new file mode 100644
+index 0000000..ec78d42
+--- /dev/null
++++ b/sepolicy/bluetooth_loader.te
+@@ -0,0 +1,21 @@
++# hci_qcomm_init: brings up the WCN3660B Bluetooth core over SMD before the BT HAL opens it
++# (started by init.ags_w09.bt.rc when libbt-vendor sets bluetooth.hciattach=true).
++type bluetooth_loader, domain;
++type bluetooth_loader_exec, exec_type, vendor_file_type, file_type;
++init_daemon_domain(bluetooth_loader)
++
++# The BT core's HCI command channel
++allow bluetooth_loader smd_device:chr_file rw_file_perms;
++
++# libbtpower: bt.power.level props and Huawei's /proc/connectivity/power_level
++get_prop(bluetooth_loader, bluetooth_prop)
++allow bluetooth_loader proc_connectivity:dir search;
++allow bluetooth_loader proc_connectivity:file r_file_perms;
++
++# Factory BD address: oeminfo via oeminfo_nvm_server, cached in /data/misc/bluedroid/qcomm_bda
++# (the server answers through a file in /dev/oinv that the client reads and removes)
++unix_socket_connect(bluetooth_loader, oeminfo_nvm, oeminfo_nvm)
++allow bluetooth_loader oeminfo_nvm_device:dir rw_dir_perms;
++allow bluetooth_loader oeminfo_nvm_device:file { r_file_perms unlink };
++allow bluetooth_loader bluetooth_data_file:dir rw_dir_perms;
++allow bluetooth_loader bluetooth_data_file:file create_file_perms;
+diff --git a/sepolicy/file.te b/sepolicy/file.te
+index 1044ed4..471901a 100644
+--- a/sepolicy/file.te
++++ b/sepolicy/file.te
+@@ -4,3 +4,5 @@ type sysfs_lcd_cabc, fs_type, sysfs_type;
+ type sysfs_firmware_class_path, fs_type, sysfs_type;
+ type proc_print_fatal_signals, fs_type, proc_type;
+ type sysfs_ssr_restart_level, fs_type, sysfs_type;
++# Huawei connectivity info (BT/FM firmware version, TX power level)
++type proc_connectivity, fs_type, proc_type;
+diff --git a/sepolicy/file_contexts b/sepolicy/file_contexts
+index abb28ad..72d4c24 100644
+--- a/sepolicy/file_contexts
++++ b/sepolicy/file_contexts
+@@ -45,3 +45,4 @@
+ 
+ # LiveDisplay (livedisplay/): LineageOS's sysfs LiveDisplay domain, on the panel's CABC node
+ /(vendor|system/vendor)/bin/hw/vendor\.lineage\.livedisplay@2\.0-service\.ags_w09   u:object_r:hal_lineage_livedisplay_sysfs_exec:s0
++/(vendor|system/vendor)/bin/hci_qcomm_init	u:object_r:bluetooth_loader_exec:s0
+diff --git a/sepolicy/genfs_contexts b/sepolicy/genfs_contexts
+index db1c997..523e6c2 100644
+--- a/sepolicy/genfs_contexts
++++ b/sepolicy/genfs_contexts
+@@ -10,3 +10,4 @@ genfscon sysfs /module/firmware_class/parameters/path u:object_r:sysfs_firmware_
+ genfscon sysfs /devices/soc/78db000.usb/msm_hsusb/gadget u:object_r:sysfs_android_usb:s0
+ genfscon proc /sys/kernel/print-fatal-signals u:object_r:proc_print_fatal_signals:s0
+ genfscon sysfs /devices/soc/c200000.qcom,lpass/subsys1/restart_level u:object_r:sysfs_ssr_restart_level:s0
++genfscon proc /connectivity u:object_r:proc_connectivity:s0
+diff --git a/sepolicy/property_contexts b/sepolicy/property_contexts
+index 0b04b83..541d31b 100644
+--- a/sepolicy/property_contexts
++++ b/sepolicy/property_contexts
+@@ -3,3 +3,5 @@ vendor.camera.			u:object_r:camera_prop:s0
+ # init.qcom.post_boot.sh (Oreo vendor)
+ ro.min_freq_                    u:object_r:freq_prop:s0
+ sys.post_boot.parsed            u:object_r:vendor_mpctl_prop:s0
++# libbt-vendor (Oreo prebuilt): the unprefixed names of vendor.wc_transport.*
++wc_transport.                   u:object_r:vendor_bluetooth_prop:s0
+diff --git a/sepolicy/vendor_dir.te b/sepolicy/vendor_dir.te
+index d489e4e..1610d95 100644
+--- a/sepolicy/vendor_dir.te
++++ b/sepolicy/vendor_dir.te
+@@ -1,2 +1,2 @@
+ # Oreo vendor daemons list the /vendor root directory.
+-allow { irsc_util perfd qti_init_shell sensors thermal-engine time_daemon vndservicemanager } vendor_file:dir r_dir_perms;
++allow { bluetooth_loader irsc_util perfd qti_init_shell sensors thermal-engine time_daemon vndservicemanager } vendor_file:dir r_dir_perms;
+-- 
+2.53.0
+

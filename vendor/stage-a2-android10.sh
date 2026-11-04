@@ -35,6 +35,10 @@
 # 11. USB modes: init.ags_w09.usb.rc (device series 0026) in /vendor/etc/init. Android 10's
 #     init.usb.rc only knows none/adb/accessory/audio_source for the legacy android_usb gadget, so
 #     File transfer (MTP), PTP, USB tethering and MIDI timed out and fell back to adb.
+# 12. Bluetooth: the Android 10 bluetooth@1.0 HAL (in SWAP; with frameworks/hardware_interfaces-
+#     bluetooth-fw-cfg-deadlock.patch: the vendor libbt-vendor holds its lock across the FW_CFG
+#     callback, the stock AOSP HAL re-entered it and deadlocked), init.ags_w09.bt.rc (device series
+#     0027: hciattach + bluetooth.status) and the bluetooth_loader label for hci_qcomm_init.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -49,13 +53,15 @@ lib/hw/android.hardware.keymaster@3.0-impl.so lib/hw/android.hardware.sensors@1.
 lib64/libhwminijail.so lib64/libkeymaster3device.so lib64/libwifi-hal.so
 lib64/hw/android.hardware.audio@2.0-impl.so lib64/hw/android.hardware.audio.effect@2.0-impl.so
 lib64/hw/android.hardware.keymaster@3.0-impl.so lib64/hw/android.hardware.sensors@1.0-impl.so
-lib/libshim_icu58.so lib64/libshim_icu58.so lib/libshim_hwlog.so lib64/libshim_hwlog.so"
+lib/libshim_icu58.so lib64/libshim_icu58.so lib/libshim_hwlog.so lib64/libshim_hwlog.so
+bin/hw/android.hardware.bluetooth@1.0-service lib/hw/android.hardware.bluetooth@1.0-impl.so
+lib64/hw/android.hardware.bluetooth@1.0-impl.so"
 S=$(mktemp -d); trap 'rm -rf "${S:?}"' EXIT
 for f in $SWAP; do mkdir -p "$S/${f%/*}"; cp "$OUT/$f" "$S/$f"; done
 cp "$OUT/bin/hw/android.hardware.power@1.2-service-qti" "$S/bin/hw/android.hardware.power@1.0-service-qti"
 LD=vendor.lineage.livedisplay@2.0-service.ags_w09
 mkdir -p "$S/etc/init"; cp "$OUT/bin/hw/$LD" "$S/bin/hw/$LD"; cp "$OUT/etc/init/$LD.rc" "$S/etc/init/$LD.rc"
-cp "$OUT/etc/init/init.ags_w09.usb.rc" "$S/etc/init/"
+cp "$OUT/etc/init/init.ags_w09.usb.rc" "$OUT/etc/init/init.ags_w09.bt.rc" "$S/etc/init/"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
@@ -127,6 +133,7 @@ for f in $(find . -type f | sed 's#^\./##'); do
     [ "$(sha256sum < "$f")" = "$(sha256sum < "$d")" ] || { echo "verify failed: $d"; exit 1; }
     echo "ok $d"
 done
+chcon u:object_r:bluetooth_loader_exec:s0 /vendor/bin/hci_qcomm_init   # Bluetooth power-up (item 12)
 for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so lib64/libnativebridge.so; do
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f

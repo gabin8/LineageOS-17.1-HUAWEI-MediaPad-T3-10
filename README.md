@@ -32,7 +32,9 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   used the hardware class LineageOS 17.1 dropped (fix 50). 0026 adds the USB modes: Android 10's
   `init.usb.rc` only knows adb and accessory modes for this kernel's legacy `android_usb` gadget
   (15.1 had them from Qualcomm's `init.qcom.usb.rc`), so File transfer (MTP), PTP, USB tethering
-  and MIDI fell back to adb.
+  and MIDI fell back to adb. 0027 brings up Bluetooth (15.1 never had it): the `hciattach` power-up
+  service stock EMUI kept in its vendor rc, its SELinux domain, and the factory Bluetooth address
+  read from oeminfo (the same source as the Wi-Fi MAC).
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
@@ -62,6 +64,10 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   - `SystemUI-qs-tile-logging-background.patch` — every quick-settings expansion wrote one usage
     log entry per tile (event log + statsd socket) on the UI thread, about a quarter of its CPU
     time in the first frames of a shade pull; the writes now run on SystemUI's background thread.
+  - `hardware_interfaces-bluetooth-fw-cfg-deadlock.patch` — the Bluetooth HAL called back into
+    Qualcomm's `libbt-vendor` from inside its firmware-configured callback; that library holds a
+    lock across the callback, so the HAL deadlocked and Bluetooth stopped after 3 s ("Bluetooth
+    keeps stopping"). Low power mode setup now waits until the library call has returned.
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -90,7 +96,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026) |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 

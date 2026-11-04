@@ -1,0 +1,88 @@
+From ff6a3619803e2c87d1475c058a48f290be52fdac Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 22:04:09 +0200
+Subject: [PATCH] bluetooth: set up low power mode after op(BT_VND_OP_FW_CFG)
+ returns
+
+Qualcomm's libbt-vendor built with BT_THREADLOCK_SAFE holds its op() lock
+while it calls fwcfg_cb from op(BT_VND_OP_FW_CFG). OnFirmwareConfigured()
+then called op(BT_VND_OP_GET_LPM_IDLE_TIMEOUT) on the same thread and
+deadlocked: initialize() never returned and the stack aborted on its
+3 s startup timer ("Bluetooth keeps stopping"). When the callback comes
+synchronously from that op(), defer the low power mode setup until it
+has returned.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I60077c0447ea2e9b27585601e13ecf9c66888dfd
+---
+ bluetooth/1.0/default/vendor_interface.cc | 18 ++++++++++++++++++
+ bluetooth/1.0/default/vendor_interface.h  |  9 +++++++++
+ 2 files changed, 27 insertions(+)
+
+diff --git a/bluetooth/1.0/default/vendor_interface.cc b/bluetooth/1.0/default/vendor_interface.cc
+index d56e344..41a08eb 100644
+--- a/bluetooth/1.0/default/vendor_interface.cc
++++ b/bluetooth/1.0/default/vendor_interface.cc
+@@ -267,7 +267,14 @@ bool VendorInterface::Open(InitializeCompleteCallback initialize_complete_cb,
+ 
+   // Start configuring the firmware
+   firmware_startup_timer_ = new FirmwareStartupTimer();
++  fw_cfg_thread_ = std::this_thread::get_id();
++  in_fw_cfg_ = true;
+   lib_interface_->op(BT_VND_OP_FW_CFG, nullptr);
++  in_fw_cfg_ = false;
++  if (lpm_setup_deferred_) {
++    lpm_setup_deferred_ = false;
++    SetUpLowPowerMode();
++  }
+ 
+   return true;
+ }
+@@ -339,6 +346,17 @@ void VendorInterface::OnFirmwareConfigured(uint8_t result) {
+     initialize_complete_cb_ = nullptr;
+   }
+ 
++  // Qualcomm's libbt-vendor built with BT_THREADLOCK_SAFE holds its op() lock while it calls
++  // fwcfg_cb from op(BT_VND_OP_FW_CFG), so calling op() here would deadlock. When the callback
++  // comes synchronously from that op(), set up low power mode once it has returned (Open()).
++  if (in_fw_cfg_ && std::this_thread::get_id() == fw_cfg_thread_) {
++    lpm_setup_deferred_ = true;
++    return;
++  }
++  SetUpLowPowerMode();
++}
++
++void VendorInterface::SetUpLowPowerMode() {
+   lib_interface_->op(BT_VND_OP_GET_LPM_IDLE_TIMEOUT, &lpm_timeout_ms);
+   ALOGI("%s: lpm_timeout_ms %d", __func__, lpm_timeout_ms);
+ 
+diff --git a/bluetooth/1.0/default/vendor_interface.h b/bluetooth/1.0/default/vendor_interface.h
+index 1d69040..894531c 100644
+--- a/bluetooth/1.0/default/vendor_interface.h
++++ b/bluetooth/1.0/default/vendor_interface.h
+@@ -18,6 +18,9 @@
+ 
+ #include <hidl/HidlSupport.h>
+ 
++#include <atomic>
++#include <thread>
++
+ #include "async_fd_watcher.h"
+ #include "bt_vendor_lib.h"
+ #include "hci_protocol.h"
+@@ -67,6 +70,12 @@ class VendorInterface {
+   PacketReadCallback event_cb_;
+ 
+   FirmwareStartupTimer* firmware_startup_timer_ = nullptr;
++
++  // See OnFirmwareConfigured(): low power mode setup deferred out of op(BT_VND_OP_FW_CFG).
++  void SetUpLowPowerMode();
++  std::atomic<bool> in_fw_cfg_{false};
++  std::thread::id fw_cfg_thread_;
++  bool lpm_setup_deferred_ = false;
+ };
+ 
+ }  // namespace implementation
+-- 
+2.53.0
+
