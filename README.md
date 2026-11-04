@@ -64,6 +64,10 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   - `SystemUI-qs-tile-logging-background.patch` — every quick-settings expansion wrote one usage
     log entry per tile (event log + statsd socket) on the UI thread, about a quarter of its CPU
     time in the first frames of a shade pull; the writes now run on SystemUI's background thread.
+  - `Snap-tablet-shutter-offset.patch` — Snap's tablet (sw600dp) shutter margin put half the shutter
+    off screen; the 15.1 fix used the phone value, which left it 23 px out of line with the
+    mode-switch icon and thumbnail. Now on their row (within 1–4 px). Snap stays portrait-locked
+    (its own manifest; the controls turn to the side when the tablet is held in landscape).
   - `hardware_interfaces-bluetooth-fw-cfg-deadlock.patch` — the Bluetooth HAL called back into
     Qualcomm's `libbt-vendor` from inside its firmware-configured callback; that library holds a
     lock across the callback, so the HAL deadlocked and Bluetooth stopped after 3 s ("Bluetooth

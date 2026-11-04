@@ -1,13 +1,17 @@
 diff --git a/res/values-sw600dp/dimens.xml b/res/values-sw600dp/dimens.xml
-index d8e88c4..8bdb6cc 100644
+index d8e88c4..03b6551 100644
 --- a/res/values-sw600dp/dimens.xml
 +++ b/res/values-sw600dp/dimens.xml
-@@ -18,7 +18,7 @@
+@@ -18,7 +18,11 @@
      <dimen name="setting_row_height">@dimen/setting_row_height_large</dimen>
      <dimen name="setting_popup_window_width">@dimen/setting_popup_window_width_large</dimen>
      <dimen name="setting_item_icon_width">@dimen/setting_item_icon_width_large</dimen>
 -    <dimen name="shutter_offset">-33dp</dimen>
-+    <dimen name="shutter_offset">11dp</dimen>
++    <!-- The shutter is anchored to the bottom edge, the thumbnail and mode switcher sit on the
++         centre of the bottom row of a 7-row grid (CameraControls.toIndex). 29dp puts the 80dp
++         shutter on that row on a 213 dpi 800x1280 tablet (AGS-W09); -33dp pushed it half off
++         screen and the phone value 11dp left it 23 px off the row. -->
++    <dimen name="shutter_offset">29dp</dimen>
      <dimen name="capture_size">80dip</dimen>
      <dimen name="capture_margin_top">16dip</dimen>
      <dimen name="camera_controls_size">520dip</dimen>
