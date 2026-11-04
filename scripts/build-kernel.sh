@@ -9,7 +9,7 @@ set -euo pipefail
 TREE=$(realpath "${1:?lineage tree}"); OUT=$(realpath -m "${2:?out dir}")
 HERE=$(cd "$(dirname "$0")" && pwd)
 IMAGE=${BUILD_IMAGE:-localhost/los15-build}
-STAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -u '+%a %b %-d 12:00:00 UTC %Y')}
+STAMP=${KBUILD_BUILD_TIMESTAMP:-$(LC_ALL=C date -u '+%a %b %-d 12:00:00 UTC %Y')}  # C locale: no host language in the banner
 # The repo checkout's .git points outside the mounted source, so pass the commit in.
 K="$TREE/kernel/huawei/ags_w09"
 LV=-g$(git -C "$K" rev-parse --short=8 HEAD)

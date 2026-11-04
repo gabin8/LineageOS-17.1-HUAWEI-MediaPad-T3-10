@@ -1,0 +1,158 @@
+From 6e57ff606c23d07b85c816c6e3bb1aa41637c9fb Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 16:51:16 +0200
+Subject: [PATCH] binder: drop the shrinker's mm reference asynchronously
+ (kernel panic)
+
+The binder driver backported from msm8937 lineage-15.1 (15.1 fix 3)
+had mmput_async() replaced by mmput(), as 3.18 has no mmput_async. But
+binder_alloc_free_page() runs from list_lru_walk() with the lru spinlock
+held, and its "mmap_sem busy" error path drops the mm reference there.
+mmput() may sleep, and this kernel panics on sleeping in atomic context:
+
+  BUG: sleeping function called from invalid context at kernel/fork.c:692
+  kernel BUG at kernel/sched/qhmp_core.c:9187!
+  mmput <- binder_alloc_free_page <- list_lru_walk_node
+        <- binder_shrink_scan <- shrink_slab <- kswapd
+
+Seen on Android 10 with several apps open (kswapd reclaiming binder
+pages while an app held its mmap_sem). Backport upstream v4.7
+7ef949d77f95 ("mm: oom_reaper: introduce mmput_async"): __mmput() split
+out of mmput(), mmput_async() defers it to the system workqueue when it
+drops the last reference; binder's error path uses it, as upstream.
+Upstream embeds a work_struct in mm_struct, but <linux/workqueue.h>
+cannot be included from mm_types.h on 3.18 arm64 (header cycle), so the
+mms go on a lock-free list drained by one static work item.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/linux/mm_types.h |  2 ++
+ include/linux/sched.h    |  2 ++
+ kernel/fork.c            | 69 ++++++++++++++++++++++++++++++----------
+ 3 files changed, 56 insertions(+), 17 deletions(-)
+
+diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
+index 94a120e9..2e98ebcb 100644
+--- a/include/linux/mm_types.h
++++ b/include/linux/mm_types.h
+@@ -13,6 +13,7 @@
+ #include <linux/cpumask.h>
+ #include <linux/page-debug-flags.h>
+ #include <linux/uprobes.h>
++#include <linux/llist.h>
+ #include <linux/page-flags-layout.h>
+ #include <asm/page.h>
+ #include <asm/mmu.h>
+@@ -475,6 +476,7 @@ struct mm_struct {
+ 	bool tlb_flush_pending;
+ #endif
+ 	struct uprobes_state uprobes_state;
++	struct llist_node async_put_node;	/* mmput_async() */
+ #ifdef CONFIG_MSM_APP_SETTINGS
+ 	int app_setting;
+ #endif
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index bcd7aef4..f2e6fb01 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -2663,6 +2663,8 @@ static inline void mmdrop(struct mm_struct * mm)
+ 
+ /* mmput gets rid of the mappings and all user-space */
+ extern int mmput(struct mm_struct *);
++/* same as above but performs the slow path from the async context. Can be called from the atomic context as well */
++extern void mmput_async(struct mm_struct *);
+ /* Grab a reference to a task's mm, if it is not already going away */
+ extern struct mm_struct *get_task_mm(struct task_struct *task);
+ /*
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 9bdd7e4d..9c6a2f60 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -686,32 +686,67 @@ EXPORT_SYMBOL_GPL(__mmdrop);
+ /*
+  * Decrement the use count and release all resources for an mm.
+  */
++static inline void __mmput(struct mm_struct *mm)
++{
++	VM_BUG_ON(atomic_read(&mm->mm_users));
++
++	uprobe_clear_state(mm);
++	exit_aio(mm);
++	ksm_exit(mm);
++	khugepaged_exit(mm); /* must run before exit_mmap */
++	exit_mmap(mm);
++	set_mm_exe_file(mm, NULL);
++	if (!list_empty(&mm->mmlist)) {
++		spin_lock(&mmlist_lock);
++		list_del(&mm->mmlist);
++		spin_unlock(&mmlist_lock);
++	}
++	if (mm->binfmt)
++		module_put(mm->binfmt->module);
++	mmdrop(mm);
++}
++
+ int mmput(struct mm_struct *mm)
+ {
+-	int mm_freed = 0;
+ 	might_sleep();
+ 
+ 	if (atomic_dec_and_test(&mm->mm_users)) {
+-		uprobe_clear_state(mm);
+-		exit_aio(mm);
+-		ksm_exit(mm);
+-		khugepaged_exit(mm); /* must run before exit_mmap */
+-		exit_mmap(mm);
+-		set_mm_exe_file(mm, NULL);
+-		if (!list_empty(&mm->mmlist)) {
+-			spin_lock(&mmlist_lock);
+-			list_del(&mm->mmlist);
+-			spin_unlock(&mmlist_lock);
+-		}
+-		if (mm->binfmt)
+-			module_put(mm->binfmt->module);
+-		mmdrop(mm);
+-		mm_freed = 1;
++		__mmput(mm);
++		return 1;
+ 	}
+-	return mm_freed;
++	return 0;
+ }
+ EXPORT_SYMBOL_GPL(mmput);
+ 
++/*
++ * Backport of upstream v4.7 7ef949d77f95 ("mm: oom_reaper: introduce mmput_async"): drop a
++ * reference from atomic context. If it was the last one, the teardown (which may sleep) runs
++ * from the system workqueue. The Android binder shrinker needs it: it may drop an mm reference
++ * while list_lru_walk() holds a spinlock. Upstream embeds a work_struct in mm_struct; on 3.18
++ * <linux/workqueue.h> cannot be included from mm_types.h (header cycle on arm64), so the mms
++ * are queued on a lock-free list drained by one static work item instead.
++ */
++static LLIST_HEAD(mmput_async_list);
++
++static void mmput_async_fn(struct work_struct *work)
++{
++	struct llist_node *list = llist_del_all(&mmput_async_list);
++	struct mm_struct *mm, *next;
++
++	llist_for_each_entry_safe(mm, next, list, async_put_node)
++		__mmput(mm);
++}
++
++static DECLARE_WORK(mmput_async_work, mmput_async_fn);
++
++void mmput_async(struct mm_struct *mm)
++{
++	if (atomic_dec_and_test(&mm->mm_users)) {
++		llist_add(&mm->async_put_node, &mmput_async_list);
++		schedule_work(&mmput_async_work);
++	}
++}
++
+ void set_mm_exe_file(struct mm_struct *mm, struct file *new_exe_file)
+ {
+ 	if (new_exe_file)
+-- 
+2.53.0
+
