@@ -1,0 +1,53 @@
+From 80da134ba3e37475e5a9d560f62c2c4fa62e13ac Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 16:01:46 +0200
+Subject: [PATCH] QSPanel: write the tile visibility logs from the background
+ thread
+
+Every time a QS panel expands, logTiles() writes one MetricsLogger entry
+per tile (an event-log write plus a statsd socket write each), for the
+QS panel and again for the quick QS panel in the header. On a 4x A53
+tablet (MSM8917) that was about a quarter of the main thread's CPU time
+in the first frames of a shade pull, landing exactly in the frame that
+already does the expansion setup.
+
+Build the LogMakers on the main thread (tile state is main-thread data)
+and post the writes to the SystemUI background handler. The same entries
+are logged, only from another thread; the main thread no longer shows
+any logTiles samples in a profile of repeated full QS expansions.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: Iaf3ff74f1df3893600f5116917baecdb418806e5
+---
+ .../SystemUI/src/com/android/systemui/qs/QSPanel.java | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/qs/QSPanel.java b/packages/SystemUI/src/com/android/systemui/qs/QSPanel.java
+index 62d38bc1..ee0d055b 100644
+--- a/packages/SystemUI/src/com/android/systemui/qs/QSPanel.java
++++ b/packages/SystemUI/src/com/android/systemui/qs/QSPanel.java
+@@ -603,11 +603,20 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
+     }
+ 
+     private void logTiles() {
++        // Build the entries here (tile state is main-thread data) but write them from the
++        // background thread: one event-log plus one statsd write per tile, for both QS panels,
++        // landed in the first frame of every shade pull and pushed it past the frame deadline.
++        final ArrayList<LogMaker> logs = new ArrayList<>(mRecords.size());
+         for (int i = 0; i < mRecords.size(); i++) {
+             QSTile tile = mRecords.get(i).tile;
+-            mMetricsLogger.write(tile.populate(new LogMaker(tile.getMetricsCategory())
++            logs.add(tile.populate(new LogMaker(tile.getMetricsCategory())
+                     .setType(MetricsEvent.TYPE_OPEN)));
+         }
++        Dependency.get(Dependency.BG_HANDLER).post(() -> {
++            for (LogMaker log : logs) {
++                mMetricsLogger.write(log);
++            }
++        });
+     }
+ 
+     private void fireShowingDetail(DetailAdapter detail, int x, int y) {
+-- 
+2.53.0
+

@@ -37,6 +37,16 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     buffer made the MDP rotator run every frame; the rotator borrows the only DMA pipe, and four
     home-screen layers then no longer fit the 3 remaining pipes: SurfaceFlinger GPU-composed the
     notification shade (~320 dropped display frames per 8 pulls, now 0).
+  - `vendor_qcom_power-explicit-touch-boost.patch` — touch and app-launch boosts. Huawei's perfd
+    client library has no `perf_hint()`, so the power HAL's boosts were silent no-ops (also on 15.1)
+    and drags started at the lowest CPU clock. The HAL now takes an explicit single-cluster perf
+    lock while the finger moves: CPU at 1.4 GHz, GPU top level, and the HMP scheduler boost (the
+    UI thread was waiting for a CPU while another core idled). Shade drags went from 49% to 14%
+    janky frames; the scheduler boost then cut late render frames from 29–55 to 9–10 per five
+    pulls. Installed on the vendor partition by stage A2 (below).
+  - `SystemUI-qs-tile-logging-background.patch` — every quick-settings expansion wrote one usage
+    log entry per tile (event log + statsd socket) on the UI thread, about a quarter of its CPU
+    time in the first frames of a shade pull; the writes now run on SystemUI's background thread.
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -49,7 +59,8 @@ The device keeps the 15.1 v2 vendor partition; two scripts adapt it, each step d
 - [`vendor/stage-a2-android10.sh`](vendor/stage-a2-android10.sh) — from a root recovery: the Oreo
   `vndservicemanager` cannot talk to Android 10's libbinder (no display), the vendor's Oreo
   `libnativeloader` shadows Android 10's APEX copy (no zygote), Oreo-built HIDL wrappers do not link,
-  configstore's Oreo seccomp policy kills it (system_server hang at screen-off).
+  configstore's Oreo seccomp policy kills it (system_server hang at screen-off); it also installs
+  the patched Android 10 power HAL under the 15.1 binary name.
 - [`scripts/vendor-abi-audit.py`](scripts/vendor-abi-audit.py) finds such breaks offline (legacy
   linker order: `/system`, then `/vendor`, then the APEX link);
   [`scripts/verify-system-img.sh`](scripts/verify-system-img.sh) checks the root directory inside

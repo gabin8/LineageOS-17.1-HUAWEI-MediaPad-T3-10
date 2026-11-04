@@ -25,6 +25,11 @@
 #  8. camera.msm8937.so: sendSingleParam() patched to return 0 (Oreo-sized stack Parcel overflow).
 #  7. media_codecs_performance.xml: two update entries rewritten to the form Q's parser accepts
 #     (else no codecs at all); debug.sf.latch_unsignaled=0 (Q client composition showed garbage).
+#  9. Power HAL: the Android 10 one (vendor/qcom/opensource/power + frameworks/
+#     vendor_qcom_power-explicit-touch-boost.patch) under the 15.1 binary name, so the 15.1 rc
+#     (service power-hal-1-0) runs it. Huawei's perfd client has no perf_hint(): the touch and
+#     launch boosts were no-ops; the patched HAL takes explicit single-cluster perf locks (CPU
+#     floor, GPU level, HMP sched_boost).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -42,6 +47,7 @@ lib64/hw/android.hardware.keymaster@3.0-impl.so lib64/hw/android.hardware.sensor
 lib/libshim_icu58.so lib64/libshim_icu58.so lib/libshim_hwlog.so lib64/libshim_hwlog.so"
 S=$(mktemp -d); trap 'rm -rf "${S:?}"' EXIT
 for f in $SWAP; do mkdir -p "$S/${f%/*}"; cp "$OUT/$f" "$S/$f"; done
+cp "$OUT/bin/hw/android.hardware.power@1.2-service-qti" "$S/bin/hw/android.hardware.power@1.0-service-qti"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
