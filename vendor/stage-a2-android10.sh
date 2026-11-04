@@ -32,6 +32,9 @@
 #     floor, GPU level, HMP sched_boost).
 # 10. LiveDisplay: the device's livedisplay@2.0 service (adaptive backlight = the panel's CABC,
 #     device series 0024) and its rc. vendor.lineage.livedisplay@2.0.so comes with system.img.
+# 11. USB modes: init.ags_w09.usb.rc (device series 0026) in /vendor/etc/init. Android 10's
+#     init.usb.rc only knows none/adb/accessory/audio_source for the legacy android_usb gadget, so
+#     File transfer (MTP), PTP, USB tethering and MIDI timed out and fell back to adb.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -52,6 +55,7 @@ for f in $SWAP; do mkdir -p "$S/${f%/*}"; cp "$OUT/$f" "$S/$f"; done
 cp "$OUT/bin/hw/android.hardware.power@1.2-service-qti" "$S/bin/hw/android.hardware.power@1.0-service-qti"
 LD=vendor.lineage.livedisplay@2.0-service.ags_w09
 mkdir -p "$S/etc/init"; cp "$OUT/bin/hw/$LD" "$S/bin/hw/$LD"; cp "$OUT/etc/init/$LD.rc" "$S/etc/init/$LD.rc"
+cp "$OUT/etc/init/init.ags_w09.usb.rc" "$S/etc/init/"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }

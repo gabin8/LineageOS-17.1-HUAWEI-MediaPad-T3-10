@@ -1,0 +1,138 @@
+From 1cd103a1132bd066fc0fcebf4cf8a5724cbd624e Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 20:40:45 +0200
+Subject: [PATCH] usb: MTP, PTP, USB tethering and MIDI gadget modes
+
+Android 10's /init.usb.rc only handles none, adb, accessory and audio_source
+for the legacy android_usb driver. UsbDeviceManager sets sys.usb.config and
+waits for sys.usb.state to follow, so every other Settings choice timed out
+and fell back to adb. Add the property triggers (with and without adb) in
+/vendor/etc/init, using Google's VID/PIDs like the adb mode. MtpServer uses
+the kernel's /dev/mtp_usb, as there is no FunctionFS MTP endpoint.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ product/usb.mk              |  1 +
+ rootdir/Android.mk          | 10 +++++
+ rootdir/init.ags_w09.usb.rc | 77 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 88 insertions(+)
+ create mode 100644 rootdir/init.ags_w09.usb.rc
+
+diff --git a/product/usb.mk b/product/usb.mk
+index ce622ac..a678cfe 100644
+--- a/product/usb.mk
++++ b/product/usb.mk
+@@ -1,5 +1,6 @@
+ # Init scripts
+ PRODUCT_PACKAGES += \
++    init.ags_w09.usb.rc \
+     init.qcom.usb.sh
+ 
+ # Permissions
+diff --git a/rootdir/Android.mk b/rootdir/Android.mk
+index 3dea8eb..7becace 100644
+--- a/rootdir/Android.mk
++++ b/rootdir/Android.mk
+@@ -37,6 +37,16 @@ $(eval $(call ags_w09_root_prebuilt,ueventd.qcom.rc))
+ $(eval $(call ags_w09_root_prebuilt,init.wifi.sh))
+ $(eval $(call ags_w09_root_prebuilt,init.wifi_mac.sh))
+ 
++# USB gadget modes (MTP, PTP, RNDIS, MIDI) for the legacy android_usb driver: /vendor/etc/init, so
++# the stage A2 vendor step can install it on the prebuilt vendor partition.
++include $(CLEAR_VARS)
++LOCAL_MODULE       := init.ags_w09.usb.rc
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := init.ags_w09.usb.rc
++LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init
++include $(BUILD_PREBUILT)
++
+ define ags_w09_vendor_script
+ include $$(CLEAR_VARS)
+ LOCAL_MODULE       := $(1)
+diff --git a/rootdir/init.ags_w09.usb.rc b/rootdir/init.ags_w09.usb.rc
+new file mode 100644
+index 0000000..7c1edf2
+--- /dev/null
++++ b/rootdir/init.ags_w09.usb.rc
+@@ -0,0 +1,77 @@
++# USB gadget modes for the legacy android_usb driver (kernel 3.18, sys.usb.configfs=0).
++# Android 10's /init.usb.rc only covers none, adb, accessory and audio_source; UsbDeviceManager
++# sets sys.usb.config and waits for sys.usb.state to follow, so without these triggers every
++# Settings choice (file transfer, PTP, USB tethering, MIDI) times out and falls back to adb.
++# 15.1 took them from Qualcomm's init.qcom.usb.rc; Google's VID/PIDs to match the adb mode.
++# adb here is the FunctionFS-backed function (f_ffs alias, see /init.qcom.rc); MTP and PTP use the
++# kernel's /dev/mtp_usb (MtpServer falls back to it when there is no FunctionFS MTP endpoint).
++
++on property:sys.usb.config=mtp && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE1
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE2
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    start adbd
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=rndis && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE3
++    write /sys/class/android_usb/android0/f_rndis/wceis 1
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=rndis,adb && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE4
++    write /sys/class/android_usb/android0/f_rndis/wceis 1
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    start adbd
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=ptp && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE5
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=ptp,adb && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE6
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    start adbd
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=midi && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE8
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
++
++on property:sys.usb.config=midi,adb && property:sys.usb.configfs=0
++    write /sys/class/android_usb/android0/enable 0
++    write /sys/class/android_usb/android0/idVendor 18d1
++    write /sys/class/android_usb/android0/idProduct 4EE9
++    write /sys/class/android_usb/android0/functions ${sys.usb.config}
++    start adbd
++    write /sys/class/android_usb/android0/enable 1
++    setprop sys.usb.state ${sys.usb.config}
+-- 
+2.53.0
+

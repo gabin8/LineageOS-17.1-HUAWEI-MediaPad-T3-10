@@ -29,7 +29,10 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   change, applied with `device/lineage-17.1/apply.sh` (legacy, non-Treble build like 15.1).
   It includes the SELinux policy for enforcing (0022/0023) and a small LiveDisplay 2.0 service
   (0024): "Reduce power consumption" (adaptive backlight) drives the panel's own CABC again; 15.1
-  used the hardware class LineageOS 17.1 dropped (fix 50).
+  used the hardware class LineageOS 17.1 dropped (fix 50). 0026 adds the USB modes: Android 10's
+  `init.usb.rc` only knows adb and accessory modes for this kernel's legacy `android_usb` gadget
+  (15.1 had them from Qualcomm's `init.qcom.usb.rc`), so File transfer (MTP), PTP, USB tethering
+  and MIDI fell back to adb.
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
@@ -87,7 +90,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC) |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 
