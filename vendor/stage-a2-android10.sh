@@ -39,6 +39,12 @@
 #     bluetooth-fw-cfg-deadlock.patch: the vendor libbt-vendor holds its lock across the FW_CFG
 #     callback, the stock AOSP HAL re-entered it and deadlocked), init.ags_w09.bt.rc (device series
 #     0027: hciattach + bluetooth.status) and the bluetooth_loader label for hci_qcomm_init.
+# 13. Bluetooth headset audio. audio_policy_configuration.xml: the outputs were routed only to the
+#     combined "BT SCO All" device; Android 10's policy then crashed (null port import) on every
+#     hands-free connection, in a loop. Routed to the individual SCO devices (as the port's
+#     vendor/audio_policy_configuration.xml). And park Huawei's audio.a2dp.default.so: it predates
+#     A2DP codec configuration (no sup_formats), so music stayed on the speaker; the system image's
+#     module loads instead (hw_get_module searches /vendor first).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -92,6 +98,21 @@ def rep(m):
 open(sys.argv[2], 'w').write(pat.sub(rep, s))
 EOF
 rm -f "$S/perf.xml"
+# audio_policy_configuration.xml (item 13): BT SCO All -> BT SCO, BT SCO Headset, BT SCO Car Kit.
+adb pull /vendor/etc/audio_policy_configuration.xml "$S/apc.xml" >/dev/null
+python3 - "$S/apc.xml" "$S/etc/audio_policy_configuration.xml" <<'EOF'
+import re, sys
+s = open(sys.argv[1]).read()
+s2 = re.sub(r'\n[ \t]*<devicePort tagName="BT SCO All"[^>]*>.*?</devicePort>', '', s, flags=re.S)
+def routes(m):
+    ind, src = m.group(1), m.group(2)
+    return '\n'.join(f'{ind}<route type="mix" sink="{d}"\n{ind}       sources="{src}"/>'
+                     for d in ('BT SCO', 'BT SCO Headset', 'BT SCO Car Kit'))
+s2 = re.sub(r'([ \t]*)<route type="mix" sink="BT SCO All"\s*sources="([^"]*)"/>', routes, s2)
+if s2 != s:
+    open(sys.argv[2], 'w').write(s2)
+EOF
+rm -f "$S/apc.xml"
 # camera.msm8937.so (32-bit, Huawei Oreo HAL): its static copy of qdutils' sendSingleParam() puts two
 # android::Parcel on the stack with Oreo's size (52 bytes); Android 10's Parcel is larger, so the
 # constructor overran into the stack canary -> "stack corruption detected" -> camera provider abort,
@@ -134,7 +155,8 @@ for f in $(find . -type f | sed 's#^\./##'); do
     echo "ok $d"
 done
 chcon u:object_r:bluetooth_loader_exec:s0 /vendor/bin/hci_qcomm_init   # Bluetooth power-up (item 12)
-for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so lib64/libnativebridge.so; do
+for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so lib64/libnativebridge.so \
+         lib/hw/audio.a2dp.default.so lib64/hw/audio.a2dp.default.so; do   # a2dp: item 13
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done

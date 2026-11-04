@@ -1,0 +1,84 @@
+From 8cd6cfaca58037bcfa6ccb09ddfb082a60398a39 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 00:12:15 +0200
+Subject: [PATCH] audio: Bluetooth headsets on Android 10 (SCO routes, no
+ vendor A2DP module)
+
+- audio_policy_configuration.xml: the outputs were routed only to the
+  combined "BT SCO All" device (AUDIO_DEVICE_OUT_ALL_SCO). Android 10's
+  HwModuleCollection::createDevice() takes a profile that supports a SCO
+  headset by type bits, then imports the port of the exact type from its
+  supported devices: there was none, so audioserver crashed (null sp in
+  AudioPort::importAudioPort) on every hands-free connection, and again
+  after each restart (crash loop, apps ANR on audio calls). Route to
+  BT SCO, BT SCO Headset and BT SCO Car Kit instead; drop BT SCO All.
+- proprietary-files.txt: do not extract vendor/lib{,64}/hw/
+  audio.a2dp.default.so. Huawei's module predates A2DP codec
+  configuration (no sup_formats, no GET_OUTPUT_AUDIO_CONFIG), so the
+  policy could not learn the output format and refused the headphones
+  (music stayed on the speaker). The system image's module is used.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ audio/audio_policy_configuration.xml | 10 +++++-----
+ proprietary-files.txt                |  5 +++--
+ 2 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/audio/audio_policy_configuration.xml b/audio/audio_policy_configuration.xml
+index 27d526f..746f0e3 100644
+--- a/audio/audio_policy_configuration.xml
++++ b/audio/audio_policy_configuration.xml
+@@ -182,10 +182,6 @@
+                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                              samplingRates="8000,16000" channelMasks="AUDIO_CHANNEL_OUT_MONO"/>
+                 </devicePort>
+-                <devicePort tagName="BT SCO All" type="AUDIO_DEVICE_OUT_ALL_SCO" role="sink">
+-                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+-                             samplingRates="8000,16000" channelMasks="AUDIO_CHANNEL_OUT_MONO"/>
+-                </devicePort>
+                 <devicePort tagName="Telephony Tx" type="AUDIO_DEVICE_OUT_TELEPHONY_TX" role="sink">
+                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                              samplingRates="8000,16000" channelMasks="AUDIO_CHANNEL_OUT_MONO,AUDIO_CHANNEL_OUT_STEREO"/>
+@@ -250,7 +246,11 @@
+                        sources="primary output,deep_buffer,direct_pcm,compressed_offload"/>
+                 <route type="mix" sink="FM"
+                        sources="primary output"/>
+-                <route type="mix" sink="BT SCO All"
++                <route type="mix" sink="BT SCO"
++                       sources="primary output,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
++                <route type="mix" sink="BT SCO Headset"
++                       sources="primary output,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
++                <route type="mix" sink="BT SCO Car Kit"
+                        sources="primary output,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
+                 <route type="mix" sink="Telephony Tx"
+                        sources="voice_tx"/>
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index 752042b..e5541f4 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -3248,7 +3248,6 @@ vendor/lib/egl/libRBEGL_adreno.so
+ vendor/lib/egl/libRBGLESv1_CM_adreno.so
+ vendor/lib/egl/libRBGLESv2_adreno.so
+ vendor/lib/hw/activity_recognition.msm8937.so
+-vendor/lib/hw/audio.a2dp.default.so
+ vendor/lib/hw/audio.primary.default.so
+ vendor/lib/hw/audio.primary.msm8937.so
+ vendor/lib/hw/audio.r_submix.default.so
+@@ -5736,7 +5735,6 @@ vendor/lib64/egl/libRBGLESv1_CM_adreno.so
+ vendor/lib64/egl/libRBGLESv2_adreno.so
+ vendor/lib64/hw/CameraFactoryService.so
+ vendor/lib64/hw/activity_recognition.msm8937.so
+-vendor/lib64/hw/audio.a2dp.default.so
+ vendor/lib64/hw/audio.primary.default.so
+ vendor/lib64/hw/audio.primary.msm8937.so
+ vendor/lib64/hw/audio.r_submix.default.so
+@@ -6310,3 +6308,6 @@ vendor/usr/keylayout/synaptics_dsx.kl
+ vendor/usr/keylayout/synaptics_rmi4_i2c.kl
+ vendor/usr/share/zoneinfo/tzdata
+ 
++# Not extracted: vendor/lib{,64}/hw/audio.a2dp.default.so. Huawei's A2DP audio module predates A2DP
++# codec configuration (no sup_formats / GET_OUTPUT_AUDIO_CONFIG): Android 10 could not open a
++# Bluetooth music output and played on the speaker. The system image's module is used instead.
+-- 
+2.53.0
+
