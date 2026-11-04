@@ -32,6 +32,11 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   - `SetupWizard-no-emergency-call-without-voice.patch` — no "Emergency call" on a Wi-Fi tablet.
   - `lineage-sdk-lockscreen-rotation-default.patch` — overlayable "Rotate lock screen" default
     (15.1 needed a manual toggle, fix 41).
+  - `SystemUI-wallpaper-redraw-on-rotation.patch` — the image wallpaper redraws after a rotation, so
+    its buffer stays pre-rotated (the Adreno driver pre-rotates from the transform hint). A stale
+    buffer made the MDP rotator run every frame; the rotator borrows the only DMA pipe, and four
+    home-screen layers then no longer fit the 3 remaining pipes: SurfaceFlinger GPU-composed the
+    notification shade (~320 dropped display frames per 8 pulls, now 0).
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -59,7 +64,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front, preview and photo) OK |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front, preview and photo) OK; notification shade at 60 fps over the launcher |
 | 4. SELinux enforcing | — |
 | 5. Reproducible vendor + release | — |
 

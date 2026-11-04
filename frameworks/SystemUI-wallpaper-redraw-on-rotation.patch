@@ -1,0 +1,145 @@
+From 9602095a9609168538940e0534e7714ea6caec6d Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 11:57:08 +0200
+Subject: [PATCH] ImageWallpaper: redraw after a display rotation
+
+The GL engine sizes its surface to the bitmap (setFixedSize), so a display
+rotation neither resizes the surface nor requests a redraw: the single
+buffer keeps the orientation it was drawn in. GPU drivers that pre-rotate
+EGL window surfaces from the transform hint (Adreno) then leave a buffer
+that the display engine must rotate on every frame. On MDP5 parts
+(msm8917/msm8937) the rotator borrows the only DMA pipe, so with the
+wallpaper, the launcher, the status bar and the navigation bar on screen
+the composition runs out of pipes and SurfaceFlinger GPU-composes while
+the notification shade is pulled (AGS-W09: 53-55% janky frames, ~320 SF
+missed frames per 8 pulls; with this change 26-32% and none).
+
+Redraw once after the display rotation changes, on a new EGL surface: the
+reconnect picks up SurfaceFlinger's current transform hint (drawing on
+the old surface would reuse the stale one until its next queueBuffer).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I4c995a4d564be3e47f8b646a34beac3b592548c2
+---
+ .../com/android/systemui/ImageWallpaper.java  | 63 ++++++++++++++++++-
+ 1 file changed, 62 insertions(+), 1 deletion(-)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java b/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
+index fa3405fa..450e6b17 100644
+--- a/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
++++ b/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
+@@ -20,6 +20,7 @@ import android.app.ActivityManager;
+ import android.content.Context;
+ import android.content.res.Configuration;
+ import android.graphics.Rect;
++import android.hardware.display.DisplayManager;
+ import android.os.HandlerThread;
+ import android.os.Trace;
+ import android.service.wallpaper.WallpaperService;
+@@ -51,6 +52,7 @@ public class ImageWallpaper extends WallpaperService {
+     private static final int DELAY_FINISH_RENDERING = 1000;
+     private static final int INTERVAL_WAIT_FOR_RENDERING = 100;
+     private static final int PATIENCE_WAIT_FOR_RENDERING = 10;
++    private static final int DELAY_REDRAW_ON_ROTATION = 300;
+     private static final boolean DEBUG = true;
+     private HandlerThread mWorker;
+ 
+@@ -73,7 +75,8 @@ public class ImageWallpaper extends WallpaperService {
+         mWorker = null;
+     }
+ 
+-    class GLEngine extends Engine implements GLWallpaperRenderer.SurfaceProxy, StateListener {
++    class GLEngine extends Engine implements GLWallpaperRenderer.SurfaceProxy, StateListener,
++            DisplayManager.DisplayListener {
+         // Surface is rejected if size below a threshold on some devices (ie. 8px on elfin)
+         // set min to 64 px (CTS covers this), please refer to ag/4867989 for detail.
+         @VisibleForTesting
+@@ -92,6 +95,10 @@ public class ImageWallpaper extends WallpaperService {
+         private final DisplayInfo mDisplayInfo = new DisplayInfo();
+         private final Object mMonitor = new Object();
+         private boolean mNeedRedraw;
++        // Display rotation the wallpaper buffer was last drawn for, see onDisplayChanged().
++        private int mRotation;
++        private boolean mSurfaceInitialized;
++        private final Runnable mRotationRedrawTask = this::redrawForRotation;
+         // This variable can only be accessed in synchronized block.
+         private boolean mWaitingForRendering;
+ 
+@@ -117,6 +124,54 @@ public class ImageWallpaper extends WallpaperService {
+             setFixedSizeAllowed(true);
+             setOffsetNotificationsEnabled(true);
+             updateSurfaceSize();
++            mRotation = getDisplayContext().getDisplay().getRotation();
++            getDisplayContext().getSystemService(DisplayManager.class)
++                    .registerDisplayListener(this, mWorker.getThreadHandler());
++        }
++
++        /**
++         * The surface has a fixed size (the bitmap's), so a display rotation neither resizes it
++         * nor asks for a redraw, and the single buffer keeps the orientation it was drawn in.
++         * GPU drivers that pre-rotate EGL window surfaces (Adreno does, from the transform hint)
++         * then leave a buffer that the display engine has to rotate on every frame; on MDP5
++         * parts (msm8917/8937) the rotator borrows the only DMA pipe, so the composition runs
++         * out of pipes and SurfaceFlinger falls back to GPU composition while the shade or any
++         * animation is on screen. Redraw once after a rotation, on a new EGL surface: the
++         * reconnect picks up SurfaceFlinger's current transform hint (the old surface would reuse
++         * the stale one until its next queueBuffer).
++         */
++        @Override
++        public void onDisplayChanged(int displayId) {
++            if (mWorker == null || displayId != getDisplayContext().getDisplay().getDisplayId()) {
++                return;
++            }
++            int rotation = getDisplayContext().getDisplay().getRotation();
++            if (rotation == mRotation) return;
++            mRotation = rotation;
++            // Let the rotation transaction reach SurfaceFlinger (it updates the layer's hint).
++            mWorker.getThreadHandler().removeCallbacks(mRotationRedrawTask);
++            mWorker.getThreadHandler().postDelayed(mRotationRedrawTask, DELAY_REDRAW_ON_ROTATION);
++        }
++
++        @Override
++        public void onDisplayAdded(int displayId) {
++        }
++
++        @Override
++        public void onDisplayRemoved(int displayId) {
++        }
++
++        private void redrawForRotation() {
++            if (mEglHelper == null || mRenderer == null || !mSurfaceInitialized
++                    || getSurfaceHolder().getSurface() == null
++                    || !getSurfaceHolder().getSurface().isValid()) {
++                return;
++            }
++            if (DEBUG) {
++                Log.d(TAG, "redrawForRotation: rotation=" + mRotation);
++            }
++            mEglHelper.destroyEglSurface();
++            drawFrame();
+         }
+ 
+         private void updateSurfaceSize() {
+@@ -194,6 +249,11 @@ public class ImageWallpaper extends WallpaperService {
+                 mController.removeCallback(this /* StateListener */);
+             }
+             mController = null;
++            getDisplayContext().getSystemService(DisplayManager.class)
++                    .unregisterDisplayListener(this);
++            if (mWorker != null) {
++                mWorker.getThreadHandler().removeCallbacks(mRotationRedrawTask);
++            }
+ 
+             mWorker.getThreadHandler().post(() -> {
+                 mRenderer.finish();
+@@ -209,6 +269,7 @@ public class ImageWallpaper extends WallpaperService {
+             mShouldStopTransition = checkIfShouldStopTransition();
+             mWorker.getThreadHandler().post(() -> {
+                 mEglHelper.init(holder);
++                mSurfaceInitialized = true;
+                 mRenderer.onSurfaceCreated();
+             });
+         }
+-- 
+2.53.0
+
