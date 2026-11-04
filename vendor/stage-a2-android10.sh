@@ -30,6 +30,8 @@
 #     (service power-hal-1-0) runs it. Huawei's perfd client has no perf_hint(): the touch and
 #     launch boosts were no-ops; the patched HAL takes explicit single-cluster perf locks (CPU
 #     floor, GPU level, HMP sched_boost).
+# 10. LiveDisplay: the device's livedisplay@2.0 service (adaptive backlight = the panel's CABC,
+#     device series 0024) and its rc. vendor.lineage.livedisplay@2.0.so comes with system.img.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -48,6 +50,8 @@ lib/libshim_icu58.so lib64/libshim_icu58.so lib/libshim_hwlog.so lib64/libshim_h
 S=$(mktemp -d); trap 'rm -rf "${S:?}"' EXIT
 for f in $SWAP; do mkdir -p "$S/${f%/*}"; cp "$OUT/$f" "$S/$f"; done
 cp "$OUT/bin/hw/android.hardware.power@1.2-service-qti" "$S/bin/hw/android.hardware.power@1.0-service-qti"
+LD=vendor.lineage.livedisplay@2.0-service.ags_w09
+mkdir -p "$S/etc/init"; cp "$OUT/bin/hw/$LD" "$S/bin/hw/$LD"; cp "$OUT/etc/init/$LD.rc" "$S/etc/init/$LD.rc"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
@@ -109,6 +113,12 @@ for f in $(find . -type f | sed 's#^\./##'); do
         cat "$f" > "$d"                    # in place: keeps owner, mode, SELinux label
     else
         cp "$f" "$d"; chown root:root "$d"; chmod 644 "$d"; chcon u:object_r:vendor_file:s0 "$d"
+        case $f in    # new files: label as the Android 10 vendor policy expects
+            bin/hw/vendor.lineage.livedisplay@2.0-service.ags_w09)
+                chown root:shell "$d"; chmod 755 "$d"
+                chcon u:object_r:hal_lineage_livedisplay_sysfs_exec:s0 "$d" ;;
+            etc/init/*.rc) chcon u:object_r:vendor_configs_file:s0 "$d" ;;
+        esac
     fi
     [ "$(sha256sum < "$f")" = "$(sha256sum < "$d")" ] || { echo "verify failed: $d"; exit 1; }
     echo "ok $d"

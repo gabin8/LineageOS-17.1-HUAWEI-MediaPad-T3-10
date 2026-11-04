@@ -1,0 +1,300 @@
+From ad4c6b194f394a3d0d44137c6837ddf533681cf1 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 18:25:44 +0200
+Subject: [PATCH] livedisplay: adaptive backlight (panel CABC) as a LiveDisplay
+ 2.0 HAL
+
+LineageOS 17.1 dropped BOARD_HARDWARE_CLASS, so 15.1's lineagehw
+AdaptiveBacklight (fix 50) is gone, and its generic sysfs LiveDisplay
+service only knows fb0/cabc and fb0/acl. Huawei's lcdkit driver exposes
+the BOE NT51017 panel's own CABC as fb0/lcd_cabc_mode (0 off, 1 UI
+mode; the kernel re-sends the chosen mode after each panel power-on).
+
+vendor.lineage.livedisplay@2.0-service.ags_w09 implements only
+IAdaptiveBacklight on that node and runs in LineageOS's
+hal_lineage_livedisplay_sysfs domain, with write access to
+sysfs_lcd_cabc. It replaces the stale livedisplay@1.0-service-sdm
+package line (that module no longer exists in 17.1).
+
+Tested enforcing: Settings > LiveDisplay > "Reduce power consumption"
+flips the panel register both ways and survives screen off/on; 0
+denials.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ livedisplay/AdaptiveBacklight.cpp             | 62 +++++++++++++++++++
+ livedisplay/AdaptiveBacklight.h               | 43 +++++++++++++
+ livedisplay/Android.bp                        | 32 ++++++++++
+ livedisplay/service.cpp                       | 50 +++++++++++++++
+ ...lineage.livedisplay@2.0-service.ags_w09.rc |  5 ++
+ product/display.mk                            |  4 +-
+ sepolicy/file_contexts                        |  3 +
+ sepolicy/hal_lineage_livedisplay_sysfs.te     |  2 +
+ 8 files changed, 199 insertions(+), 2 deletions(-)
+ create mode 100644 livedisplay/AdaptiveBacklight.cpp
+ create mode 100644 livedisplay/AdaptiveBacklight.h
+ create mode 100644 livedisplay/Android.bp
+ create mode 100644 livedisplay/service.cpp
+ create mode 100644 livedisplay/vendor.lineage.livedisplay@2.0-service.ags_w09.rc
+ create mode 100644 sepolicy/hal_lineage_livedisplay_sysfs.te
+
+diff --git a/livedisplay/AdaptiveBacklight.cpp b/livedisplay/AdaptiveBacklight.cpp
+new file mode 100644
+index 0000000..8afbde9
+--- /dev/null
++++ b/livedisplay/AdaptiveBacklight.cpp
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) 2026 The LineageOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include "AdaptiveBacklight.h"
++
++#include <android-base/file.h>
++#include <android-base/parseint.h>
++#include <android-base/strings.h>
++#include <unistd.h>
++
++using ::android::base::ParseInt;
++using ::android::base::ReadFileToString;
++using ::android::base::Trim;
++using ::android::base::WriteStringToFile;
++
++namespace {
++// 0 = off, 1 = UI mode (panel register 0x96 = 00 / c0). The kernel re-sends the chosen mode
++// after every panel power-on (kernel/lcdkit-cabc-restore.patch); stock leaves CABC always on.
++constexpr const char* kCabcMode = "/sys/devices/virtual/graphics/fb0/lcd_cabc_mode";
++}  // anonymous namespace
++
++namespace vendor {
++namespace lineage {
++namespace livedisplay {
++namespace V2_0 {
++namespace implementation {
++
++bool AdaptiveBacklight::isSupported() {
++    return access(kCabcMode, R_OK | W_OK) == 0;
++}
++
++Return<bool> AdaptiveBacklight::isEnabled() {
++    std::string contents;
++    int mode = 0;
++    if (!ReadFileToString(kCabcMode, &contents) || !ParseInt(Trim(contents), &mode)) {
++        return false;
++    }
++    return mode > 0;
++}
++
++Return<bool> AdaptiveBacklight::setEnabled(bool enabled) {
++    return WriteStringToFile(enabled ? "1" : "0", kCabcMode, true);
++}
++
++}  // namespace implementation
++}  // namespace V2_0
++}  // namespace livedisplay
++}  // namespace lineage
++}  // namespace vendor
+diff --git a/livedisplay/AdaptiveBacklight.h b/livedisplay/AdaptiveBacklight.h
+new file mode 100644
+index 0000000..9ba9895
+--- /dev/null
++++ b/livedisplay/AdaptiveBacklight.h
+@@ -0,0 +1,43 @@
++/*
++ * Copyright (C) 2026 The LineageOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#pragma once
++
++#include <vendor/lineage/livedisplay/2.0/IAdaptiveBacklight.h>
++
++namespace vendor {
++namespace lineage {
++namespace livedisplay {
++namespace V2_0 {
++namespace implementation {
++
++using ::android::hardware::Return;
++
++// The BOE NT51017 panel's own CABC, exposed by Huawei's lcdkit driver.
++class AdaptiveBacklight : public IAdaptiveBacklight {
++  public:
++    static bool isSupported();
++
++    // Methods from ::vendor::lineage::livedisplay::V2_0::IAdaptiveBacklight follow.
++    Return<bool> isEnabled() override;
++    Return<bool> setEnabled(bool enabled) override;
++};
++
++}  // namespace implementation
++}  // namespace V2_0
++}  // namespace livedisplay
++}  // namespace lineage
++}  // namespace vendor
+diff --git a/livedisplay/Android.bp b/livedisplay/Android.bp
+new file mode 100644
+index 0000000..4df5995
+--- /dev/null
++++ b/livedisplay/Android.bp
+@@ -0,0 +1,32 @@
++// Copyright (C) 2026 The LineageOS Project
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++cc_binary {
++    name: "vendor.lineage.livedisplay@2.0-service.ags_w09",
++    defaults: ["hidl_defaults"],
++    init_rc: ["vendor.lineage.livedisplay@2.0-service.ags_w09.rc"],
++    relative_install_path: "hw",
++    srcs: [
++        "AdaptiveBacklight.cpp",
++        "service.cpp",
++    ],
++    shared_libs: [
++        "libbase",
++        "libhidlbase",
++        "libhidltransport",
++        "libutils",
++        "vendor.lineage.livedisplay@2.0",
++    ],
++    vendor: true,
++}
+diff --git a/livedisplay/service.cpp b/livedisplay/service.cpp
+new file mode 100644
+index 0000000..9679b6f
+--- /dev/null
++++ b/livedisplay/service.cpp
+@@ -0,0 +1,50 @@
++/*
++ * Copyright (C) 2026 The LineageOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#define LOG_TAG "vendor.lineage.livedisplay@2.0-service.ags_w09"
++
++#include <android-base/logging.h>
++#include <hidl/HidlTransportSupport.h>
++
++#include "AdaptiveBacklight.h"
++
++using ::android::OK;
++using ::android::sp;
++using ::android::hardware::configureRpcThreadpool;
++using ::android::hardware::joinRpcThreadpool;
++using ::vendor::lineage::livedisplay::V2_0::implementation::AdaptiveBacklight;
++
++int main() {
++    if (!AdaptiveBacklight::isSupported()) {
++        LOG(ERROR) << "Panel CABC node not accessible, no LiveDisplay features";
++        return 1;
++    }
++
++    sp<AdaptiveBacklight> ab = new AdaptiveBacklight();
++
++    configureRpcThreadpool(1, true /*callerWillJoin*/);
++
++    if (ab->registerAsService() != OK) {
++        LOG(ERROR) << "Could not register service for LiveDisplay HAL AdaptiveBacklight Iface";
++        return 1;
++    }
++
++    LOG(INFO) << "LiveDisplay HAL service is ready.";
++    joinRpcThreadpool();
++
++    LOG(ERROR) << "LiveDisplay HAL service failed to join thread pool.";
++    return 1;
++}
+diff --git a/livedisplay/vendor.lineage.livedisplay@2.0-service.ags_w09.rc b/livedisplay/vendor.lineage.livedisplay@2.0-service.ags_w09.rc
+new file mode 100644
+index 0000000..7975947
+--- /dev/null
++++ b/livedisplay/vendor.lineage.livedisplay@2.0-service.ags_w09.rc
+@@ -0,0 +1,5 @@
++service vendor.livedisplay-hal-2-0-ags_w09 /vendor/bin/hw/vendor.lineage.livedisplay@2.0-service.ags_w09
++    interface vendor.lineage.livedisplay@2.0::IAdaptiveBacklight default
++    class hal
++    user system
++    group system
+diff --git a/product/display.mk b/product/display.mk
+index 6fea0a8..1e6a17b 100644
+--- a/product/display.mk
++++ b/product/display.mk
+@@ -25,9 +25,9 @@ PRODUCT_PACKAGES += \
+     libtinyxml \
+     memtrack.msm8937
+ 
+-# Display calibration
++# LiveDisplay: adaptive backlight = the panel's CABC (livedisplay/; 1.0-service-sdm is gone in 17.1)
+ PRODUCT_PACKAGES += \
+-    vendor.lineage.livedisplay@1.0-service-sdm
++    vendor.lineage.livedisplay@2.0-service.ags_w09
+ 
+ # Display HAL
+ PRODUCT_PACKAGES += \
+diff --git a/sepolicy/file_contexts b/sepolicy/file_contexts
+index 36e6912..abb28ad 100644
+--- a/sepolicy/file_contexts
++++ b/sepolicy/file_contexts
+@@ -42,3 +42,6 @@
+ # Android 10's cgroups.json creates /dev/stune, but this 3.18 kernel has no schedtune, so the
+ # directories stay plain tmpfs. Label them as the cgroup they stand in for (writes are no-ops).
+ /dev/stune(/.*)?                            u:object_r:cgroup:s0
++
++# LiveDisplay (livedisplay/): LineageOS's sysfs LiveDisplay domain, on the panel's CABC node
++/(vendor|system/vendor)/bin/hw/vendor\.lineage\.livedisplay@2\.0-service\.ags_w09   u:object_r:hal_lineage_livedisplay_sysfs_exec:s0
+diff --git a/sepolicy/hal_lineage_livedisplay_sysfs.te b/sepolicy/hal_lineage_livedisplay_sysfs.te
+new file mode 100644
+index 0000000..7b64274
+--- /dev/null
++++ b/sepolicy/hal_lineage_livedisplay_sysfs.te
+@@ -0,0 +1,2 @@
++allow hal_lineage_livedisplay_sysfs sysfs_graphics:dir search;
++allow hal_lineage_livedisplay_sysfs sysfs_lcd_cabc:file rw_file_perms;
+-- 
+2.53.0
+
