@@ -1,0 +1,56 @@
+From 70f291a340a22ebfa08c2ea55214060a59769d22 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 12:49:57 +0200
+Subject: [PATCH] wifi: create the supplicant configs at post-fs-data (Wi-Fi
+ never started)
+
+The vendor's Oreo wpa_supplicant is started with -c files in the Android 10
+location /data/vendor/wifi/wpa, and nothing creates them: Oreo's
+libwifi-system copied the template before ctl.start, Android 10's only
+starts the service (its own supplicant creates the files itself). The
+supplicant exited at once ("Failed to open config file"), so Wi-Fi could
+not be switched on and did not reconnect after a reboot.
+
+Create them as wifi:wifi 0660 in post-fs-data, keeping an existing file
+(P2P groups), else migrating the Oreo/15.1 one, else from the vendor
+template. No "$" in the exec line: its arguments are property-expanded
+twice (action, then service start).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ rootdir/init.qcom.rc | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index 6700c54..79d032d 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -51,6 +51,10 @@ on post-fs-data
+     copy /vendor/etc/wifi/WCNSS_hw_wlan_nv_ags_w09.bin /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
+     chown wifi wifi /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
+     chmod 0644 /data/misc/wifi/nvbin/msm8937_303_0x00_0x01_0x00_nv.bin
++    # Supplicant configs (see service wpa_supplicant): keep an existing file (P2P groups), else
++    # migrate the Oreo/15.1 one, else start from the vendor template.
++    # No "$" here: exec arguments are property-expanded twice (action + service start).
++    exec u:r:wifi_bringup:s0 wifi wifi -- /system/bin/sh -c "cd /data/vendor/wifi/wpa && { test -s wpa_supplicant.conf || cp /data/misc/wifi/wpa_supplicant.conf . 2>/dev/null || cp /vendor/etc/wifi/wpa_supplicant.conf wpa_supplicant.conf; test -s p2p_supplicant.conf || cp /data/misc/wifi/p2p_supplicant.conf . 2>/dev/null || cp /vendor/etc/wifi/wpa_supplicant.conf p2p_supplicant.conf; chmod 0660 wpa_supplicant.conf p2p_supplicant.conf; }"
+ 
+ on boot
+     chown wifi wifi /sys/module/wlan/parameters/fwpath
+@@ -59,9 +63,11 @@ on boot
+     chown system system /sys/class/graphics/fb0/lcd_cabc_mode
+     chmod 0664 /sys/class/graphics/fb0/lcd_cabc_mode
+ 
+-# Android 10 paths: wificond (libwifi-system SupplicantManager) creates both configs from
+-# /vendor/etc/wifi/wpa_supplicant.conf in /data/vendor/wifi/wpa before ctl.start. The Oreo
+-# /data/misc/wifi paths are never created on a fresh /data -> supplicant exits -> WiFi stays off.
++# Android 10 paths (/data/vendor/wifi/wpa is what Q's policy lets the supplicant write). Nothing
++# in Android 10 creates the configs for this Oreo supplicant: Q's libwifi-system SupplicantManager
++# only does ctl.start (Oreo's copied the template first), and Q's own supplicant creates them
++# itself. A missing -c file makes it exit at once -> "Failed to start supplicant", Wi-Fi stays
++# off. post-fs-data creates them.
+ service wpa_supplicant /vendor/bin/hw/wpa_supplicant \
+     -ip2p0 -Dnl80211 -c/data/vendor/wifi/wpa/p2p_supplicant.conf \
+     -I/vendor/etc/wifi/p2p_supplicant_overlay.conf -N \
+-- 
+2.53.0
+
