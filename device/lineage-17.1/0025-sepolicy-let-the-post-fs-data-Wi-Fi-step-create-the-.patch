@@ -1,0 +1,37 @@
+From eaa503dac050b67badc29b694e297649903f3518 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Wed, 4 Nov 2026 19:07:44 +0200
+Subject: [PATCH] sepolicy: let the post-fs-data Wi-Fi step create the
+ supplicant configs
+
+70f291a creates /data/vendor/wifi/wpa/{wpa,p2p}_supplicant.conf at
+post-fs-data (exec as wifi:wifi in wifi_bringup) when they are missing.
+Under enforcing it could not even enter /data/vendor/wifi, so on a
+fresh /data Wi-Fi would never start again. Tested enforcing with the
+files moved aside: both are created (from the vendor template; the
+15.1 copies in /data/misc/wifi are root-only), 0 denials.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ sepolicy/wifi_bringup.te | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/sepolicy/wifi_bringup.te b/sepolicy/wifi_bringup.te
+index 47751e8..240c5e5 100644
+--- a/sepolicy/wifi_bringup.te
++++ b/sepolicy/wifi_bringup.te
+@@ -18,3 +18,11 @@ allow wifi_bringup persist_file:dir search;
+ domain_auto_trans(wifi_bringup, wcnss_service_exec, wcnss_service)
+ allow wifi_bringup firmware_file:dir search;
+ allow wifi_bringup sysfs_net:dir search;
++
++# post-fs-data supplicant configs (init.qcom.rc exec, 70f291a): create them in /data/vendor/wifi/wpa
++# from the 15.1 copies or the vendor template
++allow wifi_bringup wifi_vendor_data_file:dir search;
++allow wifi_bringup wpa_data_file:dir rw_dir_perms;
++allow wifi_bringup wpa_data_file:file create_file_perms;
++allow wifi_bringup vendor_configs_file:dir r_dir_perms;
++allow wifi_bringup vendor_configs_file:file r_file_perms;
+-- 
+2.53.0
+

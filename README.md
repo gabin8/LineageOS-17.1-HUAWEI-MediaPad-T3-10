@@ -30,6 +30,11 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   It includes the SELinux policy for enforcing (0022/0023) and a small LiveDisplay 2.0 service
   (0024): "Reduce power consumption" (adaptive backlight) drives the panel's own CABC again; 15.1
   used the hardware class LineageOS 17.1 dropped (fix 50).
+- **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
+  a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
+  stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
+  802.11d in the driver's config (`WCNSS_qcom_cfg_ags.ini`, Qualcomm's default): the country comes
+  from the access point's beacon.
 - **Frameworks:** `frameworks/*.patch` (the 15.1 ones apply where still needed). Android 10 ones:
   - `system_core-sdcard-fuse-fallback.patch` — Android 10 dropped the FUSE sdcard daemon and needs
     AOSP sdcardfs or esdfs; this kernel's sdcardfs is the older Samsung one (as on stock EMUI and

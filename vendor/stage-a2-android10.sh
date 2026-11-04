@@ -135,6 +135,11 @@ R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 # Q client (GPU) composition breaks with SurfaceFlinger latching unsignaled buffers (15.1/stock
 # vendor build.prop set 1): volume panel and any GPU-fallback frame showed garbage on screen.
 sed -i 's/^debug.sf.latch_unsignaled=1$/debug.sf.latch_unsignaled=0/' /vendor/build.prop
+# Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
+# code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
+# lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had
+# turned it off). The driver reads this file (construct_configini_with_ini_type), not the copies.
+sed -i 's/^g11dSupportEnabled=0$/g11dSupportEnabled=1/' /vendor/etc/wifi/WCNSS_qcom_cfg_ags.ini
 P=/vendor/default.prop
 grep -q '^persist.sys.usb.config=adb' $P || printf '%s\n' \
     '# stage A2 bring-up: adb on at boot without authorization (remove before release)' \

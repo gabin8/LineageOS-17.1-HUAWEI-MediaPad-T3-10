@@ -22,3 +22,4 @@
 0022-sepolicy-Android-10-rules-for-SELinux-enforcing.patch
 0023-SELinux-enforcing-drop-the-permissive-cmdline-and-a-.patch
 0024-livedisplay-adaptive-backlight-panel-CABC-as-a-LiveD.patch
+0025-sepolicy-let-the-post-fs-data-Wi-Fi-step-create-the-.patch
