@@ -30,6 +30,10 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   set up for real connections, not for the templates netd's FTP/PPTP helper rules create
   (`kernel/conntrack-sip-segment-list-init.patch`). Both now share the tablet's Wi-Fi: USB at
   150 Mbit/s to the PC, Bluetooth at about 2 Mbit/s.
+  `kernel/modem-board-info-smem-vendor2.patch` does what Huawei's stock bootloader does before
+  the modem starts and the engineering bootloader on this tablet does not: it puts the board's
+  modem id (from the device tree) and product name in shared memory, where the modem looks up its
+  board configuration. Without it the GPS engine ran but never saw a satellite.
 - **Device tree:** clienthax's `android_device_huawei_ags_w09` (lineage-15.1) with
   `device/device-tree.patch` (the 15.1 v2 state), then the lineage-17.1 port on top:
   [`device/lineage-17.1/`](device/lineage-17.1/) — a `git am` series, one commit per Android 10
@@ -63,7 +67,9 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   modemst1/2, fsg and fsc; tftp_server), and a small holder keeps the modem up, as stock's pm-proxy
   did: that one crashes on Android 10 (Huawei's Android 8 peripheral-manager client overflows the
   larger binder Parcel). A modem crash restarts the modem alone. The modem reaches ONLINE at boot
-  and offers its location service; GPS itself still needs the Qualcomm location stack.
+  and offers its location service. The location stack already on the vendor partition (Qualcomm's
+  `gps.default.so`) drives it; with the kernel's modem board info it tracks GPS, QZSS and SBAS
+  satellites (10 indoors within 5 minutes). An outdoor position fix is still to be checked.
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2

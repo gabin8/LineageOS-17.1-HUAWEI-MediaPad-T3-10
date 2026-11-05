@@ -1,0 +1,195 @@
+From 427b36f09d5bd28180c9a2a2551649fe2f69fa42 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 23:20:53 +0200
+Subject: [PATCH] soc: qcom: pass the board's modem id to the modem like
+ Huawei's aboot
+
+Huawei's stock aboot for the MSM8917 tablets fills SMEM_ID_VENDOR2 before
+the modem boots: the modem id from the device tree root
+("huawei,modem_id"), the product name from /huawei_fac_info, and the
+device model and vendor country from oeminfo. The modem picks its
+product configuration from it. The engineering aboot this port boots
+from never allocates the item, so the modem ran without its board
+configuration: the GNSS engine started sessions but never reported a
+single satellite (0 in 20 minutes outdoors).
+
+Do the same read-modify-write at late_initcall (the modem is only
+started from userspace), using aboot's fallbacks for the two encrypted
+oeminfo records. SMEM is mapped as device memory, so the fields are
+edited in a copy and written with memcpy_toio (an unaligned store to the
+item faults). With it the modem tracks satellites indoors within 17 s
+(10 satellites, up to 35 dB-Hz).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/configs/merge_msm8937_64_defconfig |   1 +
+ drivers/soc/qcom/Kconfig                      |   8 ++
+ drivers/soc/qcom/Makefile                     |   1 +
+ drivers/soc/qcom/huawei_modem_board_info.c    | 112 ++++++++++++++++++
+ 4 files changed, 122 insertions(+)
+ create mode 100644 drivers/soc/qcom/huawei_modem_board_info.c
+
+diff --git a/arch/arm64/configs/merge_msm8937_64_defconfig b/arch/arm64/configs/merge_msm8937_64_defconfig
+index 6bc4f1f5..602c6101 100644
+--- a/arch/arm64/configs/merge_msm8937_64_defconfig
++++ b/arch/arm64/configs/merge_msm8937_64_defconfig
+@@ -3784,6 +3784,7 @@ CONFIG_MSM_XPU_ERR_FATAL=y
+ # CONFIG_MSM_PFE_WA is not set
+ CONFIG_MSM_MPM_OF=y
+ CONFIG_MSM_SMEM=y
++CONFIG_HUAWEI_MODEM_BOARD_INFO=y
+ CONFIG_MSM_SMD=y
+ CONFIG_MSM_SMD_DEBUG=y
+ CONFIG_MSM_GLINK=y
+diff --git a/drivers/soc/qcom/Kconfig b/drivers/soc/qcom/Kconfig
+index 226aa68b..96a249f7 100644
+--- a/drivers/soc/qcom/Kconfig
++++ b/drivers/soc/qcom/Kconfig
+@@ -418,6 +418,14 @@ config MSM_SMEM
+ 	  processors in the System on a Chip (SoC) which allows basic
+ 	  inter-processor communication.
+ 
++config HUAWEI_MODEM_BOARD_INFO
++	depends on MSM_SMEM && OF
++	bool "Huawei modem board information in SMEM"
++	help
++	  Store the board's modem id and product name in SMEM_ID_VENDOR2
++	  before the modem boots, as Huawei's stock bootloader does. The
++	  Huawei modem firmware picks its product configuration from it.
++
+ config MSM_SMD
+ 	depends on MSM_SMEM
+ 	bool "MSM Shared Memory Driver (SMD)"
+diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+index d61b4f8c..da65fd6b 100644
+--- a/drivers/soc/qcom/Makefile
++++ b/drivers/soc/qcom/Makefile
+@@ -38,6 +38,7 @@ obj-$(CONFIG_SOC_BUS)	+=	socinfo.o
+ obj-$(CONFIG_MSM_SCM)  +=      scm.o scm-boot.o
+ obj-$(CONFIG_MSM_MPM_OF) += mpm-of.o
+ obj-$(CONFIG_MSM_SMEM)  +=smem.o smem_debug.o
++obj-$(CONFIG_HUAWEI_MODEM_BOARD_INFO) += huawei_modem_board_info.o
+ obj-$(CONFIG_MSM_SMD)   += smd.o smd_debug.o smd_private.o smd_init_dt.o smsm_debug.o
+ obj-$(CONFIG_MSM_GLINK) += glink.o glink_debugfs.o glink_ssr.o
+ obj-$(CONFIG_MSM_GLINK_LOOPBACK_SERVER) += glink_loopback_server.o
+diff --git a/drivers/soc/qcom/huawei_modem_board_info.c b/drivers/soc/qcom/huawei_modem_board_info.c
+new file mode 100644
+index 00000000..bd4b9f2b
+--- /dev/null
++++ b/drivers/soc/qcom/huawei_modem_board_info.c
+@@ -0,0 +1,112 @@
++/*
++ * Huawei modem board information in SMEM_ID_VENDOR2.
++ *
++ * Huawei's stock aboot for the MSM8917 tablets (AGS-W09 EMUI 8.0.0.161) fills SMEM_ID_VENDOR2
++ * before the modem boots, and the modem picks its product configuration from it:
++ *   +0x48  u32       modem id, from the device tree root property "huawei,modem_id"
++ *   +0x4c  char[16]  product name, from /huawei_fac_info "fac,product_name"
++ *   +0x5c  char[48]  device model, from oeminfo (aboot falls back to "default")
++ *   +0x8c  char[64]  vendor/country, from oeminfo (aboot falls back to "hw/default")
++ * It reads the item, patches these fields and writes the whole 256-byte item back.
++ *
++ * A board booted through a bootloader without this code (the engineering aboot on the AGS-W09
++ * port) starts the modem with the item empty. The modem is only started from userspace, so doing
++ * the same here at late_initcall is early enough. The two oeminfo records are encrypted, so this
++ * uses aboot's own fallbacks for them.
++ *
++ * This program is free software; you can redistribute it and/or modify it under the terms of the
++ * GNU General Public License version 2 as published by the Free Software Foundation.
++ */
++
++#define pr_fmt(fmt) "hw_modem_board_info: " fmt
++
++#include <linux/err.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/of.h>
++#include <linux/string.h>
++#include <soc/qcom/smem.h>
++
++#define VENDOR2_SIZE		0x100
++#define VENDOR2_MODEM_ID	0x48
++#define VENDOR2_PRODUCT_NAME	0x4c
++#define VENDOR2_DEVICE_MODEL	0x5c
++#define VENDOR2_VENDOR_COUNTRY	0x8c
++#define VENDOR2_END		0xcc
++
++static void set_field(u8 *buf, unsigned int off, unsigned int field_len, const char *val)
++{
++	memset(buf + off, 0, field_len);
++	strlcpy(buf + off, val, field_len);
++}
++
++static int __init hw_modem_board_info_init(void)
++{
++	struct device_node *root, *fac;
++	const char *product = NULL;
++	unsigned int size = 0;
++	u8 buf[VENDOR2_SIZE];
++	u32 modem_id;
++	void *item;
++
++	root = of_find_node_by_path("/");
++	if (!root || of_property_read_u32(root, "huawei,modem_id", &modem_id)) {
++		of_node_put(root);
++		return 0;	/* not a Huawei board description */
++	}
++	of_node_put(root);
++
++	fac = of_find_node_by_path("/huawei_fac_info");
++	if (fac)
++		of_property_read_string(fac, "fac,product_name", &product);
++
++	item = smem_get_entry(SMEM_ID_VENDOR2, &size, 0, SMEM_ANY_HOST_FLAG);
++	if (IS_ERR(item)) {
++		pr_err("SMEM not ready (%ld)\n", PTR_ERR(item));
++		goto out;
++	}
++	if (!item) {
++		item = smem_alloc(SMEM_ID_VENDOR2, VENDOR2_SIZE, 0, SMEM_ANY_HOST_FLAG);
++		if (IS_ERR_OR_NULL(item)) {
++			pr_err("cannot allocate SMEM_ID_VENDOR2\n");
++			goto out;
++		}
++		size = VENDOR2_SIZE;
++		pr_info("allocated SMEM_ID_VENDOR2 (%u bytes)\n", size);
++	} else {
++		pr_info("SMEM_ID_VENDOR2 exists (%u bytes)\n", size);
++		if (size < VENDOR2_END) {
++			pr_err("SMEM_ID_VENDOR2 too small, left alone\n");
++			goto out;
++		}
++	}
++
++	/*
++	 * SMEM is mapped as device memory, where unaligned accesses fault (the fields at 0x4c and
++	 * 0x5c are not 8-byte aligned): edit a copy and use the io accessors, like aboot's
++	 * read-modify-write of the whole item.
++	 */
++	memset(buf, 0, sizeof(buf));
++	memcpy_fromio(buf, (void __iomem *)item, min_t(unsigned int, size, VENDOR2_SIZE));
++	pr_info("before +0x40: %*ph\n", 64, buf + 0x40);
++	pr_info("before +0x80: %*ph\n", 64, buf + 0x80);
++
++	memcpy(buf + VENDOR2_MODEM_ID, &modem_id, sizeof(modem_id));
++	if (product && strlen(product) < VENDOR2_DEVICE_MODEL - VENDOR2_PRODUCT_NAME)
++		set_field(buf, VENDOR2_PRODUCT_NAME, VENDOR2_DEVICE_MODEL - VENDOR2_PRODUCT_NAME,
++			  product);
++	set_field(buf, VENDOR2_DEVICE_MODEL, VENDOR2_VENDOR_COUNTRY - VENDOR2_DEVICE_MODEL,
++		  "default");
++	set_field(buf, VENDOR2_VENDOR_COUNTRY, VENDOR2_END - VENDOR2_VENDOR_COUNTRY,
++		  "hw/default");
++	memcpy_toio((void __iomem *)item, buf, min_t(unsigned int, size, VENDOR2_SIZE));
++	wmb();	/* the modem reads the item later from uncached shared memory */
++
++	pr_info("modem id %#x, product %s, model %s, vendor %s\n", modem_id,
++		buf + VENDOR2_PRODUCT_NAME, buf + VENDOR2_DEVICE_MODEL, buf + VENDOR2_VENDOR_COUNTRY);
++out:
++	of_node_put(fac);
++	return 0;
++}
++late_initcall(hw_modem_board_info_init);
+-- 
+2.53.0
+
