@@ -1,0 +1,53 @@
+From 34ae7769130a612c85b029d9d9a238d2e157f9ad Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 14:04:22 +0200
+Subject: [PATCH] Recorder: show the last item as soon as it is saved
+
+The recorder services save the last item (sound_last_path,
+screen_last_path) only once the file is in the media store, after the
+refresh that follows the stop button, and the activity refreshed only
+when the recording status changed. With no earlier item (first use, or
+after deleting the last one) the play icon stayed hidden until the
+activity was resumed again. Update the icons when either key changes.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: Ia48a7e3cc7b865e42848afbebc0f7b1186adcc36
+---
+ .../main/java/org/lineageos/recorder/RecorderActivity.java   | 5 +++++
+ .../java/org/lineageos/recorder/utils/LastRecordHelper.java  | 4 ++++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/app/src/main/java/org/lineageos/recorder/RecorderActivity.java b/app/src/main/java/org/lineageos/recorder/RecorderActivity.java
+index 380b09a..64f0827 100644
+--- a/app/src/main/java/org/lineageos/recorder/RecorderActivity.java
++++ b/app/src/main/java/org/lineageos/recorder/RecorderActivity.java
+@@ -213,6 +213,11 @@ public class RecorderActivity extends AppCompatActivity implements
+     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+         if (Utils.KEY_RECORDING.equals(key)) {
+             refresh();
++        } else if (LastRecordHelper.isLastItemKey(key)) {
++            // The recorder services save the last item only once the file is in the media
++            // store, after the refresh that followed the stop button: with no earlier item, its
++            // icon stayed hidden until the activity was resumed again.
++            updateLastItemStatus();
+         }
+     }
+ 
+diff --git a/app/src/main/java/org/lineageos/recorder/utils/LastRecordHelper.java b/app/src/main/java/org/lineageos/recorder/utils/LastRecordHelper.java
+index 3c42af5..0808dc6 100644
+--- a/app/src/main/java/org/lineageos/recorder/utils/LastRecordHelper.java
++++ b/app/src/main/java/org/lineageos/recorder/utils/LastRecordHelper.java
+@@ -95,6 +95,10 @@ public class LastRecordHelper {
+                 .apply();
+     }
+ 
++    public static boolean isLastItemKey(String key) {
++        return KEY_LAST_SOUND.equals(key) || KEY_LAST_SCREEN.equals(key);
++    }
++
+     public static Uri getLastItemUri(Context context, boolean isSound) {
+         SharedPreferences prefs = context.getSharedPreferences(PREFS, 0);
+         String uriStr = prefs.getString(isSound ? KEY_LAST_SOUND : KEY_LAST_SCREEN, null);
+-- 
+2.53.0
+

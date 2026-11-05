@@ -105,6 +105,9 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     takes longer than 100 ms to stop (75–115 ms on this tablet); `wpa_supplicant` then could not
     open `p2p0`. Huawei's stock HAL does not wait at all and always restarts the driver; the HAL
     now waits up to 1 s, so the restart always follows. Installed with the HAL by stage A2.
+  - `Recorder-last-item-refresh.patch` — after a first recording (or after deleting the last
+    one) the play icon did not appear until Recorder was reopened: the app saves the last item
+    after its screen refresh and only refreshed on recording-status changes.
   - `hardware_interfaces-audio-legacy-hal-layout.patch` — `dumpsys media.audio_flinger` (and any
     bug report) crashed the audio HAL and stopped all sound. Android 9 inserted a member in the
     middle of `struct audio_hw_device`; Huawei's Android 8 audio HAL has the old layout, so the
