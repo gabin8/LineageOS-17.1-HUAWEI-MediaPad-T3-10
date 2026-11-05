@@ -1,0 +1,40 @@
+From 5e201661558ccb680ba3af9d9cb9712fba8760e9 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 13:10:21 +0200
+Subject: [PATCH] netfilter: conntrack: initialise sip_segment_list for every
+ conntrack
+
+The vendor SIP segmentation list in struct nf_conn was only initialised
+in init_conntrack(), but destroy_conntrack() walks it for every
+conntrack, including the templates the CT target creates through
+nf_conntrack_alloc(). __nf_conntrack_alloc() zeroes the list, so
+destroying a template dereferenced NULL: Android 10's netd adds
+"-j CT --helper ftp/pptp" rules for each tethered interface, and the
+iptables-restore removing them after a Bluetooth tethering session
+oopsed in destroy_conntrack+0xb0 ("Fatal exception in interrupt",
+crash-dump mode). Initialise the list in __nf_conntrack_alloc().
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ net/netfilter/nf_conntrack_core.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/net/netfilter/nf_conntrack_core.c b/net/netfilter/nf_conntrack_core.c
+index 3f8abfad..772b2a8e 100644
+--- a/net/netfilter/nf_conntrack_core.c
++++ b/net/netfilter/nf_conntrack_core.c
+@@ -861,6 +861,11 @@ __nf_conntrack_alloc(struct net *net, u16 zone,
+ 	memset(&ct->tuplehash[IP_CT_DIR_MAX], 0,
+ 	       offsetof(struct nf_conn, proto) -
+ 	       offsetof(struct nf_conn, tuplehash[IP_CT_DIR_MAX]));
++	/* destroy_conntrack() walks this list for every conntrack, including
++	 * the templates the CT target allocates here (init_conntrack() is
++	 * never called for them); zeroed, its NULL next pointer oopsed.
++	 */
++	INIT_LIST_HEAD(&ct->sip_segment_list);
+ 	spin_lock_init(&ct->lock);
+ 	ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple = *orig;
+ 	ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode.pprev = NULL;
+-- 
+2.53.0
+

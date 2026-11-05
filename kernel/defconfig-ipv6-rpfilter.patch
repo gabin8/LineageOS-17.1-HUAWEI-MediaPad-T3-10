@@ -1,0 +1,33 @@
+From b0ce64e1eed73d4154f4227ccb29a92db32e3ea7 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 12:57:40 +0200
+Subject: [PATCH] defconfig: IPv6 rpfilter match (Android 10 tethering)
+
+Android 10's netd adds "-m rpfilter --invert ! -s fe80::/64 -j DROP" to
+the IPv6 raw table for every tethered interface. Without the match the
+ip6tables-restore fails, netd reports "Error setting forward rules",
+tetherAddForward() returns ENODEV and tethering tears the interface down
+again: Bluetooth tethering connected but shared no internet. Android's
+base kernel configuration requires it since Android 9 (4.4 and 4.14).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/configs/merge_msm8937_64_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/configs/merge_msm8937_64_defconfig b/arch/arm64/configs/merge_msm8937_64_defconfig
+index 0ea09a8e..6bc4f1f5 100644
+--- a/arch/arm64/configs/merge_msm8937_64_defconfig
++++ b/arch/arm64/configs/merge_msm8937_64_defconfig
+@@ -851,7 +851,7 @@ CONFIG_IP6_NF_IPTABLES=y
+ # CONFIG_IP6_NF_MATCH_HL is not set
+ # CONFIG_IP6_NF_MATCH_IPV6HEADER is not set
+ # CONFIG_IP6_NF_MATCH_MH is not set
+-# CONFIG_IP6_NF_MATCH_RPFILTER is not set
++CONFIG_IP6_NF_MATCH_RPFILTER=y
+ # CONFIG_IP6_NF_MATCH_RT is not set
+ # CONFIG_IP6_NF_TARGET_HL is not set
+ CONFIG_IP6_NF_FILTER=y
+-- 
+2.53.0
+
