@@ -1,0 +1,43 @@
+From 8e71a346d71c81ad9e3d26922dad656e14d15983 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 12:26:03 +0200
+Subject: [PATCH] wifi: declare the hostapd HAL (Wi-Fi hotspot)
+
+Android 10 starts hostapd only through its HIDL interface: the framework
+calls IHostapd::getService() and hwservicemanager launches the daemon
+from the interface lines in hostapd.android.rc. The manifest did not
+declare android.hardware.wifi.hostapd, so the lookup failed ("Cannot find
+entry ... in either framework or device manifest"), the framework gave
+up after 5 s ("Failed to connect to hostapd") and the hotspot switch
+turned itself off again. Declared at 1.1, the version our hostapd
+registers. The Wi-Fi HAL already moves the built-in prima driver to AP
+mode (it writes "ap" to the wlan fwpath parameter; con_mode becomes 1).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ manifest.xml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/manifest.xml b/manifest.xml
+index e559a34..a0ddfb0 100644
+--- a/manifest.xml
++++ b/manifest.xml
+@@ -261,6 +261,15 @@ included.
+             <instance>default</instance>
+         </interface>
+     </hal>
++    <hal format="hidl">
++        <name>android.hardware.wifi.hostapd</name>
++        <transport>hwbinder</transport>
++        <version>1.1</version>
++        <interface>
++            <name>IHostapd</name>
++            <instance>default</instance>
++        </interface>
++    </hal>
+     <hal format="hidl">
+         <name>com.qualcomm.qti.imscmservice</name>
+         <transport>hwbinder</transport>
+-- 
+2.53.0
+

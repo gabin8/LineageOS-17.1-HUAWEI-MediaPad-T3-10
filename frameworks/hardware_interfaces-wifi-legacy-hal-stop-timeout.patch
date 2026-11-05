@@ -1,0 +1,42 @@
+From 4dbfec8e62e2e3eb450f407956fd9e3d9c9f7d42 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 12:49:23 +0200
+Subject: [PATCH] wifi: wait up to 1 s for the legacy HAL to stop
+
+The Qualcomm qcwcn wifi_cleanup on an msm8917 tablet (Huawei MediaPad
+T3 10) takes about 75-115 ms. With the 100 ms wait, stop() sometimes
+reported failure, so IWifi::stop() skipped the driver unload. After a
+hotspot session that left the built-in prima driver without p2p0 (it
+removes p2p0 in AP mode and only a driver restart brings it back), so
+wpa_supplicant could not start and Wi-Fi stayed off until a reboot.
+
+Huawei's stock HAL does not wait at all (stop returns right after
+wifi_cleanup and the driver is always unloaded); keep the Android 10
+ordering, which unloads only after the event loop has exited, with
+a wait that covers this hardware.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I04921bed2df7b5d6b6d0b137ad2d0abab7e4316a
+---
+ wifi/1.3/default/wifi_legacy_hal.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/wifi/1.3/default/wifi_legacy_hal.cpp b/wifi/1.3/default/wifi_legacy_hal.cpp
+index 5240d5b..539bf71 100644
+--- a/wifi/1.3/default/wifi_legacy_hal.cpp
++++ b/wifi/1.3/default/wifi_legacy_hal.cpp
+@@ -35,7 +35,10 @@ static constexpr uint32_t kMaxGscanFrequenciesForBand = 64;
+ static constexpr uint32_t kLinkLayerStatsDataMpduSizeThreshold = 128;
+ static constexpr uint32_t kMaxWakeReasonStatsArraySize = 32;
+ static constexpr uint32_t kMaxRingBuffers = 10;
+-static constexpr uint32_t kMaxStopCompleteWaitMs = 100;
++// The Qualcomm (qcwcn) wifi_cleanup takes ~75-115 ms on an msm8917 tablet; past the wait, stop()
++// fails, the driver is never unloaded, and after a hotspot session prima's p2p0 (removed in AP mode,
++// only recreated by a driver restart) stays gone: wpa_supplicant cannot start, Wi-Fi stays off.
++static constexpr uint32_t kMaxStopCompleteWaitMs = 1000;
+ static constexpr char kDriverPropName[] = "wlan.driver.status";
+ 
+ // Helper function to create a non-const char* for legacy Hal API's.
+-- 
+2.53.0
+

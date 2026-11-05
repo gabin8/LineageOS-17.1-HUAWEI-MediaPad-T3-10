@@ -44,6 +44,12 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   driver found!" instead of falling back to OpenGL ES (stage A2 item 14 parks the driver and the
   feature files; Android's stub then reports zero Vulkan GPUs). Games built only for Vulkan, such
   as GTA: Vice City Definitive (Unreal's desktop-class Vulkan SM5 renderer), cannot run here.
+  0030 turns on the Wi-Fi hotspot: Android 10 starts `hostapd` only through its HIDL interface,
+  which the manifest did not declare, and the vendor still had Huawei's Oreo `hostapd` (stage A2
+  item 15 installs the Android 10 one and its rc). Checked with a PC as the client: WPA2, an
+  address by DHCP, 38 Mbit/s (2.4 GHz only, 802.11n). On this Wi-Fi-only tablet Android turns
+  Wi-Fi off while the hotspot is on, so the hotspot has no internet to share: it is a local
+  network. Wi-Fi comes back when the hotspot is turned off (with the Wi-Fi HAL patch below).
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
@@ -81,6 +87,12 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     Qualcomm's `libbt-vendor` from inside its firmware-configured callback; that library holds a
     lock across the callback, so the HAL deadlocked and Bluetooth stopped after 3 s ("Bluetooth
     keeps stopping"). Low power mode setup now waits until the library call has returned.
+  - `hardware_interfaces-wifi-legacy-hal-stop-timeout.patch` — Wi-Fi stayed off after the hotspot
+    was turned off. The prima driver drops its `p2p0` interface in hotspot mode and only a driver
+    restart brings it back, but Android 10's Wi-Fi HAL skips that restart when Qualcomm's library
+    takes longer than 100 ms to stop (75–115 ms on this tablet); `wpa_supplicant` then could not
+    open `p2p0`. Huawei's stock HAL does not wait at all and always restarts the driver; the HAL
+    now waits up to 1 s, so the restart always follows. Installed with the HAL by stage A2.
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -109,7 +121,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029) |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 

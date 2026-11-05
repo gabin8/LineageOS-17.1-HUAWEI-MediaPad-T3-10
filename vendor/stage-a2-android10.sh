@@ -51,6 +51,14 @@
 #     game engines chose Vulkan and stopped with "No Vulkan driver found!". Park the four feature
 #     files and the driver (the loader's stub HAL then reports zero GPUs; apps fall back to OpenGL
 #     ES) and report OpenGL ES 3.0 (196608). Device series 0029 does the same for the vendor build.
+# 15. Wi-Fi hotspot. Android 10's framework starts hostapd only through its HIDL interface
+#     (IHostapd::getService(); hwservicemanager launches it from the rc's interface lines), but the
+#     vendor had Huawei's Oreo hostapd and rc (/vendor/bin/hostapd with a config file) and the
+#     manifest did not declare the HAL: "Failed to connect to hostapd", the switch turned itself off.
+#     Install the Android 10 hostapd and its rc (same rc path, replaced in place) and declare
+#     android.hardware.wifi.hostapd@1.1 in /vendor/manifest.xml (device series 0030). Build the
+#     Wi-Fi HAL (in SWAP) with frameworks/hardware_interfaces-wifi-legacy-hal-stop-timeout.patch, or
+#     Wi-Fi may stay off after the hotspot is turned off.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -74,6 +82,7 @@ cp "$OUT/bin/hw/android.hardware.power@1.2-service-qti" "$S/bin/hw/android.hardw
 LD=vendor.lineage.livedisplay@2.0-service.ags_w09
 mkdir -p "$S/etc/init"; cp "$OUT/bin/hw/$LD" "$S/bin/hw/$LD"; cp "$OUT/etc/init/$LD.rc" "$S/etc/init/$LD.rc"
 cp "$OUT/etc/init/init.ags_w09.usb.rc" "$OUT/etc/init/init.ags_w09.bt.rc" "$S/etc/init/"
+cp "$OUT/bin/hw/hostapd" "$S/bin/hw/hostapd"; cp "$OUT/etc/init/hostapd.android.rc" "$S/etc/init/"   # item 15
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
@@ -119,6 +128,20 @@ if s2 != s:
     open(sys.argv[2], 'w').write(s2)
 EOF
 rm -f "$S/apc.xml"
+# manifest.xml (item 15): declare the hostapd HAL after the supplicant one (once).
+adb pull /vendor/manifest.xml "$S/vm.xml" >/dev/null
+python3 - "$S/vm.xml" "$S/manifest.xml" <<'EOF'
+import re, sys
+s = open(sys.argv[1]).read()
+if 'android.hardware.wifi.hostapd' not in s:
+    m = re.search(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.wifi.supplicant</name>.*?</hal>\n', s, re.S)
+    blk = ('    <hal format="hidl">\n        <name>android.hardware.wifi.hostapd</name>\n'
+           '        <transport>hwbinder</transport>\n        <version>1.1</version>\n'
+           '        <interface>\n            <name>IHostapd</name>\n'
+           '            <instance>default</instance>\n        </interface>\n    </hal>\n')
+    open(sys.argv[2], 'w').write(s[:m.end()] + blk + s[m.end():])
+EOF
+rm -f "$S/vm.xml"
 # camera.msm8937.so (32-bit, Huawei Oreo HAL): its static copy of qdutils' sendSingleParam() puts two
 # android::Parcel on the stack with Oreo's size (52 bytes); Android 10's Parcel is larger, so the
 # constructor overran into the stack canary -> "stack corruption detected" -> camera provider abort,
@@ -154,6 +177,9 @@ for f in $(find . -type f | sed 's#^\./##'); do
             bin/hw/vendor.lineage.livedisplay@2.0-service.ags_w09)
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:hal_lineage_livedisplay_sysfs_exec:s0 "$d" ;;
+            bin/hw/hostapd)    # item 15
+                chown root:shell "$d"; chmod 755 "$d"
+                chcon u:object_r:hal_wifi_hostapd_default_exec:s0 "$d" ;;
             etc/init/*.rc) chcon u:object_r:vendor_configs_file:s0 "$d" ;;
         esac
     fi
