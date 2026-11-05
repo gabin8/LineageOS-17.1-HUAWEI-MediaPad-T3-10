@@ -28,3 +28,4 @@
 0028-audio-Bluetooth-headsets-on-Android-10-SCO-routes-no.patch
 0029-display-no-Vulkan-or-OpenGL-ES-3.1-claims-on-the-Adr.patch
 0030-wifi-declare-the-hostapd-HAL-Wi-Fi-hotspot.patch
+0031-sensors-no-ambient-light-sensor-claim.patch

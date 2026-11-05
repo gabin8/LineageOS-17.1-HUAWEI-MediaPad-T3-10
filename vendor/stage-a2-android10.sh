@@ -59,6 +59,8 @@
 #     android.hardware.wifi.hostapd@1.1 in /vendor/manifest.xml (device series 0030). Build the
 #     Wi-Fi HAL (in SWAP) with frameworks/hardware_interfaces-wifi-legacy-hal-stop-timeout.patch, or
 #     Wi-Fi may stay off after the hotspot is turned off.
+# 16. No ambient light sensor: park android.hardware.sensor.light.xml. The tablet has none, but the
+#     stock vendor declared one (device series 0031 does the same for the vendor build).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -191,8 +193,9 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          lib/hw/audio.a2dp.default.so lib64/hw/audio.a2dp.default.so \
          lib/hw/vulkan.msm8937.so lib64/hw/vulkan.msm8937.so \
          etc/permissions/android.hardware.opengles.aep.xml etc/permissions/android.hardware.vulkan.compute.xml \
-         etc/permissions/android.hardware.vulkan.level-0.xml etc/permissions/android.hardware.vulkan.version-1_0_3.xml; do
-    # a2dp: item 13; vulkan and the feature files: item 14
+         etc/permissions/android.hardware.vulkan.level-0.xml etc/permissions/android.hardware.vulkan.version-1_0_3.xml \
+         etc/permissions/android.hardware.sensor.light.xml; do
+    # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done

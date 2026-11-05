@@ -1,0 +1,145 @@
+From 6977bd702a52a626e8d67063bad5c70d14eb537d Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 13:38:03 +0200
+Subject: [PATCH] audio: read Android 8.x HALs through their audio_hw_device
+ layout (2.0)
+
+Android 9 inserted get_microphones() before dump() in struct
+audio_hw_device. A legacy audio.primary built with the 8.x audio.h
+(Huawei's on the MediaPad T3 10, served by this 2.0 wrapper) has every
+later member one slot earlier, so the wrapper called the wrong hooks:
+dumpsys media.audio_flinger (and every bug report) called the HAL's
+NULL set_master_mute slot as dump() and crashed the audio HAL and
+audioserver; master mute and the audio port hooks were off by one too.
+Huawei's stock 8.x wrapper reads dump at the old offset (0x7c, 32-bit).
+In the 2.0 wrapper, read those members through the 8.x layout, with
+static_asserts on the offsets.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I4ba0b61ec1e10d6a2154f81f9577f021ca799f94
+---
+ audio/core/all-versions/default/Device.cpp | 52 ++++++++++++++++++----
+ 1 file changed, 43 insertions(+), 9 deletions(-)
+
+diff --git a/audio/core/all-versions/default/Device.cpp b/audio/core/all-versions/default/Device.cpp
+index bec22df..2201515 100644
+--- a/audio/core/all-versions/default/Device.cpp
++++ b/audio/core/all-versions/default/Device.cpp
+@@ -26,6 +26,7 @@
+ //#define LOG_NDEBUG 0
+ 
+ #include <memory.h>
++#include <stddef.h>
+ #include <string.h>
+ #include <algorithm>
+ 
+@@ -39,6 +40,39 @@ namespace implementation {
+ 
+ using ::android::hardware::audio::common::CPP_VERSION::implementation::HidlUtils;
+ 
++#if MAJOR_VERSION == 2
++namespace {
++// The 2.0 wrapper serves legacy HALs. An audio.primary built with the Android 8.x audio.h (as
++// Huawei's on the MediaPad T3 10) has no get_microphones(): Android 9 inserted it before dump() in
++// struct audio_hw_device, so every later member sits one slot earlier in such a HAL. Read through
++// this header, mDevice->dump was the HAL's set_master_mute slot (NULL: SIGSEGV on every dumpsys
++// media.audio_flinger or bug report) and the master mute and audio port hooks were off by one.
++struct legacy_audio_hw_device {
++    struct hw_device_t common;
++    void* unchanged[15];  // get_supported_devices .. close_input_stream
++    int (*dump)(const struct audio_hw_device* dev, int fd);
++    int (*set_master_mute)(struct audio_hw_device* dev, bool mute);
++    int (*get_master_mute)(struct audio_hw_device* dev, bool* mute);
++    int (*create_audio_patch)(struct audio_hw_device* dev, unsigned int num_sources,
++                              const struct audio_port_config* sources, unsigned int num_sinks,
++                              const struct audio_port_config* sinks, audio_patch_handle_t* handle);
++    int (*release_audio_patch)(struct audio_hw_device* dev, audio_patch_handle_t handle);
++    int (*get_audio_port)(struct audio_hw_device* dev, struct audio_port* port);
++    int (*set_audio_port_config)(struct audio_hw_device* dev,
++                                 const struct audio_port_config* config);
++};
++static_assert(offsetof(legacy_audio_hw_device, unchanged) ==
++                      offsetof(audio_hw_device, get_supported_devices) &&
++              offsetof(legacy_audio_hw_device, dump) == offsetof(audio_hw_device, get_microphones) &&
++              offsetof(legacy_audio_hw_device, set_audio_port_config) ==
++                      offsetof(audio_hw_device, get_audio_port),
++              "Android 8.x audio_hw_device layout");
++}  // namespace
++#define LEGACY_HAL(dev) (reinterpret_cast<legacy_audio_hw_device*>(dev))
++#else
++#define LEGACY_HAL(dev) (dev)
++#endif
++
+ Device::Device(audio_hw_device_t* device) : mDevice(device) {}
+ 
+ Device::~Device() {
+@@ -107,8 +141,8 @@ Return<void> Device::getMicMute(getMicMute_cb _hidl_cb) {
+ 
+ Return<Result> Device::setMasterMute(bool mute) {
+     Result retval(Result::NOT_SUPPORTED);
+-    if (mDevice->set_master_mute != NULL) {
+-        retval = analyzeStatus("set_master_mute", mDevice->set_master_mute(mDevice, mute));
++    if (LEGACY_HAL(mDevice)->set_master_mute != NULL) {
++        retval = analyzeStatus("set_master_mute", LEGACY_HAL(mDevice)->set_master_mute(mDevice, mute));
+     }
+     return retval;
+ }
+@@ -116,8 +150,8 @@ Return<Result> Device::setMasterMute(bool mute) {
+ Return<void> Device::getMasterMute(getMasterMute_cb _hidl_cb) {
+     Result retval(Result::NOT_SUPPORTED);
+     bool mute = false;
+-    if (mDevice->get_master_mute != NULL) {
+-        retval = analyzeStatus("get_master_mute", mDevice->get_master_mute(mDevice, &mute));
++    if (LEGACY_HAL(mDevice)->get_master_mute != NULL) {
++        retval = analyzeStatus("get_master_mute", LEGACY_HAL(mDevice)->get_master_mute(mDevice, &mute));
+     }
+     _hidl_cb(retval, mute);
+     return Void();
+@@ -264,7 +298,7 @@ Return<void> Device::createAudioPatch(const hidl_vec<AudioPortConfig>& sources,
+         std::unique_ptr<audio_port_config[]> halSinks(HidlUtils::audioPortConfigsToHal(sinks));
+         audio_patch_handle_t halPatch = AUDIO_PATCH_HANDLE_NONE;
+         retval = analyzeStatus("create_audio_patch",
+-                               mDevice->create_audio_patch(mDevice, sources.size(), &halSources[0],
++                               LEGACY_HAL(mDevice)->create_audio_patch(mDevice, sources.size(), &halSources[0],
+                                                            sinks.size(), &halSinks[0], &halPatch));
+         if (retval == Result::OK) {
+             patch = static_cast<AudioPatchHandle>(halPatch);
+@@ -278,7 +312,7 @@ Return<Result> Device::releaseAudioPatch(int32_t patch) {
+     if (version() >= AUDIO_DEVICE_API_VERSION_3_0) {
+         return analyzeStatus(
+             "release_audio_patch",
+-            mDevice->release_audio_patch(mDevice, static_cast<audio_patch_handle_t>(patch)));
++            LEGACY_HAL(mDevice)->release_audio_patch(mDevice, static_cast<audio_patch_handle_t>(patch)));
+     }
+     return Result::NOT_SUPPORTED;
+ }
+@@ -286,7 +320,7 @@ Return<Result> Device::releaseAudioPatch(int32_t patch) {
+ Return<void> Device::getAudioPort(const AudioPort& port, getAudioPort_cb _hidl_cb) {
+     audio_port halPort;
+     HidlUtils::audioPortToHal(port, &halPort);
+-    Result retval = analyzeStatus("get_audio_port", mDevice->get_audio_port(mDevice, &halPort));
++    Result retval = analyzeStatus("get_audio_port", LEGACY_HAL(mDevice)->get_audio_port(mDevice, &halPort));
+     AudioPort resultPort = port;
+     if (retval == Result::OK) {
+         HidlUtils::audioPortFromHal(halPort, &resultPort);
+@@ -300,7 +334,7 @@ Return<Result> Device::setAudioPortConfig(const AudioPortConfig& config) {
+         struct audio_port_config halPortConfig;
+         HidlUtils::audioPortConfigToHal(config, &halPortConfig);
+         return analyzeStatus("set_audio_port_config",
+-                             mDevice->set_audio_port_config(mDevice, &halPortConfig));
++                             LEGACY_HAL(mDevice)->set_audio_port_config(mDevice, &halPortConfig));
+     }
+     return Result::NOT_SUPPORTED;
+ }
+@@ -353,7 +387,7 @@ Return<void> Device::debugDump(const hidl_handle& fd) {
+ 
+ Return<void> Device::debug(const hidl_handle& fd, const hidl_vec<hidl_string>& /* options */) {
+     if (fd.getNativeHandle() != nullptr && fd->numFds == 1) {
+-        analyzeStatus("dump", mDevice->dump(mDevice, fd->data[0]));
++        analyzeStatus("dump", LEGACY_HAL(mDevice)->dump(mDevice, fd->data[0]));
+     }
+     return Void();
+ }
+-- 
+2.53.0
+

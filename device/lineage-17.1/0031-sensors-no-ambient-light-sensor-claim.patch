@@ -1,0 +1,55 @@
+From 8d3ec6f48b4147f0fb00b69a6b23b7a018ac99bc Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 13:32:26 +0200
+Subject: [PATCH] sensors: no ambient light sensor claim
+
+The tablet has no light sensor (only the accelerometer is in the sensor
+HAL, nothing light-sensing on I2C, Huawei lists a gravity sensor), but
+the tree and the stock vendor declared android.hardware.sensor.light,
+so apps that look for one got a feature without a sensor. Adaptive
+brightness was already off in the overlay.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ product/sensors.mk    | 3 +--
+ proprietary-files.txt | 5 ++++-
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/product/sensors.mk b/product/sensors.mk
+index 1e4e272..0595bdd 100644
+--- a/product/sensors.mk
++++ b/product/sensors.mk
+@@ -1,9 +1,8 @@
+-# Permissions
++# Permissions (no android.hardware.sensor.light: this tablet has no ambient light sensor)
+ PRODUCT_COPY_FILES += \
+     frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.accelerometer.xml \
+     frameworks/native/data/etc/android.hardware.sensor.compass.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.compass.xml \
+     frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.gyroscope.xml \
+-    frameworks/native/data/etc/android.hardware.sensor.light.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.light.xml \
+     frameworks/native/data/etc/android.hardware.sensor.proximity.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.proximity.xml \
+     frameworks/native/data/etc/android.hardware.sensor.stepcounter.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.stepcounter.xml \
+     frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.stepdetector.xml \
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index f2b9537..0241627 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -2981,7 +2981,6 @@ vendor/etc/permissions/android.hardware.camera.raw.xml
+ vendor/etc/permissions/android.hardware.location.gps.xml
+ vendor/etc/permissions/android.hardware.sensor.accelerometer.xml
+ vendor/etc/permissions/android.hardware.sensor.compass.xml
+-vendor/etc/permissions/android.hardware.sensor.light.xml
+ vendor/etc/permissions/android.hardware.sensor.proximity.xml
+ vendor/etc/permissions/android.hardware.sensor.stepcounter.xml
+ vendor/etc/permissions/android.hardware.telephony.gsm.xml
+@@ -6310,3 +6309,7 @@ vendor/usr/share/zoneinfo/tzdata
+ # Not extracted: vendor/lib{,64}/hw/vulkan.msm8937.so and the OpenGL ES AEP / Vulkan feature files.
+ # The Adreno 308 is OpenGL ES 3.0 only; this msm8937-family Vulkan driver fails vkCreateInstance on
+ # it with a non-error code (5), so game engines picked Vulkan and died. See product/display.mk.
++
++# Not extracted: vendor/etc/permissions/android.hardware.sensor.light.xml. The stock vendor declares an
++# ambient light sensor, but this tablet has none (no light sensor in the sensor HAL or on I2C; Huawei
++# lists only a gravity sensor). Adaptive brightness is already off (overlay); see product/sensors.mk.
+-- 
+2.53.0
+

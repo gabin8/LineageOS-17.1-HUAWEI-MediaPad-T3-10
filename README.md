@@ -57,6 +57,8 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   address by DHCP, 38 Mbit/s (2.4 GHz only, 802.11n). On this Wi-Fi-only tablet Android turns
   Wi-Fi off while the hotspot is on, so the hotspot has no internet to share: it is a local
   network. Wi-Fi comes back when the hotspot is turned off (with the Wi-Fi HAL patch below).
+  0031 drops the ambient light sensor claim: the tablet has none (stage A2 item 16 parks the stock
+  vendor's feature file; adaptive brightness was already off).
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
@@ -100,6 +102,12 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     takes longer than 100 ms to stop (75–115 ms on this tablet); `wpa_supplicant` then could not
     open `p2p0`. Huawei's stock HAL does not wait at all and always restarts the driver; the HAL
     now waits up to 1 s, so the restart always follows. Installed with the HAL by stage A2.
+  - `hardware_interfaces-audio-legacy-hal-layout.patch` — `dumpsys media.audio_flinger` (and any
+    bug report) crashed the audio HAL and stopped all sound. Android 9 inserted a member in the
+    middle of `struct audio_hw_device`; Huawei's Android 8 audio HAL has the old layout, so the
+    Android 10 wrapper called the wrong hooks (its `dump` was the HAL's empty `set_master_mute`
+    slot; master mute and the audio port hooks were also off by one). The 2.0 wrapper now reads
+    such HALs through the Android 8 layout, as Huawei's stock wrapper did. Installed by stage A2.
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
