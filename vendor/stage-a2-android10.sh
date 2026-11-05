@@ -45,6 +45,12 @@
 #     vendor/audio_policy_configuration.xml). And park Huawei's audio.a2dp.default.so: it predates
 #     A2DP codec configuration (no sup_formats), so music stayed on the speaker; the system image's
 #     module loads instead (hw_get_module searches /vendor first).
+# 14. GPU features. The Adreno 308 is OpenGL ES 3.0 only, but the stock vendor declared the
+#     OpenGL ES AEP and Vulkan 1.0.3 features and ro.opengles.version 3.2, and its msm8937-family
+#     Vulkan driver fails vkCreateInstance on this GPU with return code 5 (not an error code), so
+#     game engines chose Vulkan and stopped with "No Vulkan driver found!". Park the four feature
+#     files and the driver (the loader's stub HAL then reports zero GPUs; apps fall back to OpenGL
+#     ES) and report OpenGL ES 3.0 (196608). Device series 0029 does the same for the vendor build.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -156,7 +162,11 @@ for f in $(find . -type f | sed 's#^\./##'); do
 done
 chcon u:object_r:bluetooth_loader_exec:s0 /vendor/bin/hci_qcomm_init   # Bluetooth power-up (item 12)
 for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so lib64/libnativebridge.so \
-         lib/hw/audio.a2dp.default.so lib64/hw/audio.a2dp.default.so; do   # a2dp: item 13
+         lib/hw/audio.a2dp.default.so lib64/hw/audio.a2dp.default.so \
+         lib/hw/vulkan.msm8937.so lib64/hw/vulkan.msm8937.so \
+         etc/permissions/android.hardware.opengles.aep.xml etc/permissions/android.hardware.vulkan.compute.xml \
+         etc/permissions/android.hardware.vulkan.level-0.xml etc/permissions/android.hardware.vulkan.version-1_0_3.xml; do
+    # a2dp: item 13; vulkan and the feature files: item 14
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
@@ -168,6 +178,7 @@ R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 # Q client (GPU) composition breaks with SurfaceFlinger latching unsignaled buffers (15.1/stock
 # vendor build.prop set 1): volume panel and any GPU-fallback frame showed garbage on screen.
 sed -i 's/^debug.sf.latch_unsignaled=1$/debug.sf.latch_unsignaled=0/' /vendor/build.prop
+sed -i 's/^ro.opengles.version=196610$/ro.opengles.version=196608/' /vendor/build.prop   # item 14
 # Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
 # code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
 # lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had

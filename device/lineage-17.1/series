@@ -26,3 +26,4 @@
 0026-usb-MTP-PTP-USB-tethering-and-MIDI-gadget-modes.patch
 0027-bluetooth-power-up-the-WCN3660B-core-hciattach-with-.patch
 0028-audio-Bluetooth-headsets-on-Android-10-SCO-routes-no.patch
+0029-display-no-Vulkan-or-OpenGL-ES-3.1-claims-on-the-Adr.patch

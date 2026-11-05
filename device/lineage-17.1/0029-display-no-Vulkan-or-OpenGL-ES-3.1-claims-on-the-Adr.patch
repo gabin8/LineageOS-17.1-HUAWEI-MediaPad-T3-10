@@ -1,0 +1,97 @@
+From f89a434dd78b28d4c6fad5ec85f04ab243bcf552 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 10:09:10 +0200
+Subject: [PATCH] display: no Vulkan or OpenGL ES 3.1+ claims on the Adreno 308
+
+The Adreno 308 is OpenGL ES 3.0 only, but the tree (and the stock
+vendor) declared the OpenGL ES AEP and Vulkan 1.0.3 features and
+ro.opengles.version 3.2. The msm8937-family Vulkan driver fails
+vkCreateInstance on this GPU with return code 5, not an error code, so
+game engines chose Vulkan and stopped with "No Vulkan driver found!".
+Drop the feature files and the driver (the loader's stub HAL then
+reports zero GPUs) and report OpenGL ES 3.0 (196608).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ product/display.mk    | 12 +++++-------
+ proprietary-files.txt |  9 ++++-----
+ 2 files changed, 9 insertions(+), 12 deletions(-)
+
+diff --git a/product/display.mk b/product/display.mk
+index 1e6a17b..fe4e737 100644
+--- a/product/display.mk
++++ b/product/display.mk
+@@ -39,12 +39,10 @@ PRODUCT_PACKAGES += \
+     android.hardware.memtrack@1.0-impl \
+     android.hardware.memtrack@1.0-service \
+ 
+-# Permissions
+-PRODUCT_COPY_FILES += \
+-    frameworks/native/data/etc/android.hardware.opengles.aep.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.opengles.aep.xml \
+-    frameworks/native/data/etc/android.hardware.vulkan.compute-0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.vulkan.compute.xml \
+-    frameworks/native/data/etc/android.hardware.vulkan.level-0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.vulkan.level-0.xml \
+-    frameworks/native/data/etc/android.hardware.vulkan.version-1_0_3.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.vulkan.version-1_0_3.xml
++# No Vulkan or OpenGL ES 3.1+ feature declarations: the Adreno 308 is OpenGL ES 3.0 only, and the
++# msm8937-family Vulkan driver in the stock vendor fails vkCreateInstance on it (with a non-error
++# code, so engines took Vulkan and then died). Without the driver the loader's stub HAL reports zero
++# GPUs and apps fall back to OpenGL ES.
+ 
+ # Properties
+ PRODUCT_PROPERTY_OVERRIDES += \
+@@ -62,7 +60,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
+     persist.hwc.enable_vds=1 \
+     persist.hwc.mdpcomp.enable=true \
+     persist.sys.wfd.virtual=0 \
+-    ro.opengles.version=196610 \
++    ro.opengles.version=196608 \
+     ro.qualcomm.cabl=0 \
+     ro.sf.lcd_density=213 \
+     sdm.debug.disable_rotator_split=1 \
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index e5541f4..f2b9537 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -2979,7 +2979,6 @@ vendor/etc/permissions/android.hardware.camera.front.xml
+ vendor/etc/permissions/android.hardware.camera.full.xml
+ vendor/etc/permissions/android.hardware.camera.raw.xml
+ vendor/etc/permissions/android.hardware.location.gps.xml
+-vendor/etc/permissions/android.hardware.opengles.aep.xml
+ vendor/etc/permissions/android.hardware.sensor.accelerometer.xml
+ vendor/etc/permissions/android.hardware.sensor.compass.xml
+ vendor/etc/permissions/android.hardware.sensor.light.xml
+@@ -2989,8 +2988,6 @@ vendor/etc/permissions/android.hardware.telephony.gsm.xml
+ vendor/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
+ vendor/etc/permissions/android.hardware.usb.accessory.xml
+ vendor/etc/permissions/android.hardware.usb.host.xml
+-vendor/etc/permissions/android.hardware.vulkan.level-0.xml
+-vendor/etc/permissions/android.hardware.vulkan.version-1_0_3.xml
+ vendor/etc/permissions/android.hardware.wifi.direct.xml
+ vendor/etc/permissions/android.hardware.wifi.xml
+ vendor/etc/permissions/android.software.midi.xml
+@@ -3278,7 +3275,6 @@ vendor/lib/hw/sensors.msm8937.so
+ vendor/lib/hw/sound_trigger.primary.msm8937.so
+ vendor/lib/hw/vendor.huawei.hardware.camera.factory@1.0-impl.so
+ vendor/lib/hw/vibrator.default.so
+-vendor/lib/hw/vulkan.msm8937.so
+ vendor/lib/hw/wbc_hal.default.so
+ vendor/lib/lib-dplmedia.so
+ vendor/lib/lib-ims-rcscmjni.so
+@@ -5762,7 +5758,6 @@ vendor/lib64/hw/sensorcaps.default.so
+ vendor/lib64/hw/sensors.msm8937.so
+ vendor/lib64/hw/vendor.huawei.hardware.camera.factory@1.0-impl.so
+ vendor/lib64/hw/vibrator.default.so
+-vendor/lib64/hw/vulkan.msm8937.so
+ vendor/lib64/hw/wbc_hal.default.so
+ vendor/lib64/lib-dplmedia.so
+ vendor/lib64/lib-ims-rcscmjni.so
+@@ -6311,3 +6306,7 @@ vendor/usr/share/zoneinfo/tzdata
+ # Not extracted: vendor/lib{,64}/hw/audio.a2dp.default.so. Huawei's A2DP audio module predates A2DP
+ # codec configuration (no sup_formats / GET_OUTPUT_AUDIO_CONFIG): Android 10 could not open a
+ # Bluetooth music output and played on the speaker. The system image's module is used instead.
++
++# Not extracted: vendor/lib{,64}/hw/vulkan.msm8937.so and the OpenGL ES AEP / Vulkan feature files.
++# The Adreno 308 is OpenGL ES 3.0 only; this msm8937-family Vulkan driver fails vkCreateInstance on
++# it with a non-error code (5), so game engines picked Vulkan and died. See product/display.mk.
+-- 
+2.53.0
+
