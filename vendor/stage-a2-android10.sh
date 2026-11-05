@@ -59,8 +59,10 @@
 #     android.hardware.wifi.hostapd@1.1 in /vendor/manifest.xml (device series 0030). Build the
 #     Wi-Fi HAL (in SWAP) with frameworks/hardware_interfaces-wifi-legacy-hal-stop-timeout.patch, or
 #     Wi-Fi may stay off after the hotspot is turned off.
-# 16. No ambient light sensor: park android.hardware.sensor.light.xml. The tablet has none, but the
-#     stock vendor declared one (device series 0031 does the same for the vendor build).
+# 16. Sensors as they are: an accelerometer (and Qualcomm's step counter on top of it) only. The
+#     stock vendor and the 15.1 tree declared light, proximity, compass, gyroscope and step
+#     detector: park those feature files and install ags_w09_unavailable_sensors.xml, which takes
+#     back handheld_core_hardware.xml's compass (device series 0031/0032).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -85,6 +87,8 @@ LD=vendor.lineage.livedisplay@2.0-service.ags_w09
 mkdir -p "$S/etc/init"; cp "$OUT/bin/hw/$LD" "$S/bin/hw/$LD"; cp "$OUT/etc/init/$LD.rc" "$S/etc/init/$LD.rc"
 cp "$OUT/etc/init/init.ags_w09.usb.rc" "$OUT/etc/init/init.ags_w09.bt.rc" "$S/etc/init/"
 cp "$OUT/bin/hw/hostapd" "$S/bin/hw/hostapd"; cp "$OUT/etc/init/hostapd.android.rc" "$S/etc/init/"   # item 15
+mkdir -p "$S/etc/permissions"   # item 16
+cp "$ROOT/device/huawei/ags_w09/configs/sensors/ags_w09_unavailable_sensors.xml" "$S/etc/permissions/"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
@@ -182,7 +186,7 @@ for f in $(find . -type f | sed 's#^\./##'); do
             bin/hw/hostapd)    # item 15
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:hal_wifi_hostapd_default_exec:s0 "$d" ;;
-            etc/init/*.rc) chcon u:object_r:vendor_configs_file:s0 "$d" ;;
+            etc/init/*.rc|etc/permissions/*.xml) chcon u:object_r:vendor_configs_file:s0 "$d" ;;
         esac
     fi
     [ "$(sha256sum < "$f")" = "$(sha256sum < "$d")" ] || { echo "verify failed: $d"; exit 1; }
@@ -194,7 +198,9 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          lib/hw/vulkan.msm8937.so lib64/hw/vulkan.msm8937.so \
          etc/permissions/android.hardware.opengles.aep.xml etc/permissions/android.hardware.vulkan.compute.xml \
          etc/permissions/android.hardware.vulkan.level-0.xml etc/permissions/android.hardware.vulkan.version-1_0_3.xml \
-         etc/permissions/android.hardware.sensor.light.xml; do
+         etc/permissions/android.hardware.sensor.light.xml etc/permissions/android.hardware.sensor.compass.xml \
+         etc/permissions/android.hardware.sensor.gyroscope.xml etc/permissions/android.hardware.sensor.proximity.xml \
+         etc/permissions/android.hardware.sensor.stepdetector.xml; do
     # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f

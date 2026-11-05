@@ -1,0 +1,92 @@
+From 2634a55d7a3127147f64c4f40cb6ea4072ead1ed Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Thu, 5 Nov 2026 13:45:14 +0200
+Subject: [PATCH] sensors: accelerometer and step counter only
+
+The tablet has an accelerometer (step counting is Qualcomm's virtual
+sensor on top of it) and nothing else, but the tree declared compass,
+gyroscope, proximity and step detector, the stock vendor compass and
+proximity, and handheld_core_hardware.xml a compass for every handheld.
+Apps that check for those features then found no sensor. Drop the
+declarations and take the remaining ones back with
+<unavailable-feature> (SystemConfig removes them after every file, so
+the order of the permission files does not matter).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ configs/sensors/ags_w09_unavailable_sensors.xml | 12 ++++++++++++
+ product/sensors.mk                              |  8 +++-----
+ proprietary-files.txt                           |  9 ++++-----
+ 3 files changed, 19 insertions(+), 10 deletions(-)
+ create mode 100644 configs/sensors/ags_w09_unavailable_sensors.xml
+
+diff --git a/configs/sensors/ags_w09_unavailable_sensors.xml b/configs/sensors/ags_w09_unavailable_sensors.xml
+new file mode 100644
+index 0000000..776f8a1
+--- /dev/null
++++ b/configs/sensors/ags_w09_unavailable_sensors.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- The MediaPad T3 10 (AGS-W09) has an accelerometer only (step counting is Qualcomm's virtual
++     sensor on top of it). handheld_core_hardware.xml declares a compass for every handheld, and
++     the stock vendor declared a light sensor, a proximity sensor and a compass as well: take them
++     back so apps do not look for sensors that are not there. -->
++<permissions>
++    <unavailable-feature name="android.hardware.sensor.compass" />
++    <unavailable-feature name="android.hardware.sensor.gyroscope" />
++    <unavailable-feature name="android.hardware.sensor.light" />
++    <unavailable-feature name="android.hardware.sensor.proximity" />
++    <unavailable-feature name="android.hardware.sensor.stepdetector" />
++</permissions>
+diff --git a/product/sensors.mk b/product/sensors.mk
+index 0595bdd..eb50d5d 100644
+--- a/product/sensors.mk
++++ b/product/sensors.mk
+@@ -1,11 +1,8 @@
+-# Permissions (no android.hardware.sensor.light: this tablet has no ambient light sensor)
++# Permissions: accelerometer and step counter only (no light, proximity, compass or gyroscope
++# here; configs/sensors/ags_w09_unavailable_sensors.xml takes back the compass of handheld_core)
+ PRODUCT_COPY_FILES += \
+     frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.accelerometer.xml \
+-    frameworks/native/data/etc/android.hardware.sensor.compass.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.compass.xml \
+-    frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.gyroscope.xml \
+-    frameworks/native/data/etc/android.hardware.sensor.proximity.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.proximity.xml \
+     frameworks/native/data/etc/android.hardware.sensor.stepcounter.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.stepcounter.xml \
+-    frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.stepdetector.xml \
+     frameworks/native/data/etc/handheld_core_hardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/handheld_core_hardware.xml
+ 
+ # Sensors
+@@ -15,5 +12,6 @@ PRODUCT_PACKAGES += \
+     sensors.msm8937
+ 
+ PRODUCT_COPY_FILES += \
++    $(DEVICE_PATH)/configs/sensors/ags_w09_unavailable_sensors.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/ags_w09_unavailable_sensors.xml \
+     $(DEVICE_PATH)/configs/sensors/hals.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/hals.conf \
+     $(DEVICE_PATH)/configs/sensors/sensor_def_qcomdev.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/sensor_def_qcomdev.conf
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index 0241627..31127a8 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -2980,8 +2980,6 @@ vendor/etc/permissions/android.hardware.camera.full.xml
+ vendor/etc/permissions/android.hardware.camera.raw.xml
+ vendor/etc/permissions/android.hardware.location.gps.xml
+ vendor/etc/permissions/android.hardware.sensor.accelerometer.xml
+-vendor/etc/permissions/android.hardware.sensor.compass.xml
+-vendor/etc/permissions/android.hardware.sensor.proximity.xml
+ vendor/etc/permissions/android.hardware.sensor.stepcounter.xml
+ vendor/etc/permissions/android.hardware.telephony.gsm.xml
+ vendor/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
+@@ -6310,6 +6308,7 @@ vendor/usr/share/zoneinfo/tzdata
+ # The Adreno 308 is OpenGL ES 3.0 only; this msm8937-family Vulkan driver fails vkCreateInstance on
+ # it with a non-error code (5), so game engines picked Vulkan and died. See product/display.mk.
+ 
+-# Not extracted: vendor/etc/permissions/android.hardware.sensor.light.xml. The stock vendor declares an
+-# ambient light sensor, but this tablet has none (no light sensor in the sensor HAL or on I2C; Huawei
+-# lists only a gravity sensor). Adaptive brightness is already off (overlay); see product/sensors.mk.
++# Not extracted: vendor/etc/permissions/android.hardware.sensor.{light,proximity,compass}.xml. The stock
++# vendor declares those sensors, but this tablet has an accelerometer only (nothing else in the sensor HAL
++# or on I2C; Huawei lists a gravity sensor). Adaptive brightness is already off (overlay); see
++# product/sensors.mk and configs/sensors/ags_w09_unavailable_sensors.xml.
+-- 
+2.53.0
+

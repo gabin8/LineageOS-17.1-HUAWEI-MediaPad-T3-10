@@ -29,3 +29,4 @@
 0029-display-no-Vulkan-or-OpenGL-ES-3.1-claims-on-the-Adr.patch
 0030-wifi-declare-the-hostapd-HAL-Wi-Fi-hotspot.patch
 0031-sensors-no-ambient-light-sensor-claim.patch
+0032-sensors-accelerometer-and-step-counter-only.patch

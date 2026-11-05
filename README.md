@@ -57,8 +57,11 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   address by DHCP, 38 Mbit/s (2.4 GHz only, 802.11n). On this Wi-Fi-only tablet Android turns
   Wi-Fi off while the hotspot is on, so the hotspot has no internet to share: it is a local
   network. Wi-Fi comes back when the hotspot is turned off (with the Wi-Fi HAL patch below).
-  0031 drops the ambient light sensor claim: the tablet has none (stage A2 item 16 parks the stock
-  vendor's feature file; adaptive brightness was already off).
+  0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
+  computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
+  gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
+  item 16 parks those files; `ags_w09_unavailable_sensors.xml` takes back the compass that
+  `handheld_core_hardware.xml` declares for every handheld). Adaptive brightness was already off.
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
