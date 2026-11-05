@@ -63,6 +63,9 @@
 #     stock vendor and the 15.1 tree declared light, proximity, compass, gyroscope and step
 #     detector: park those feature files and install ags_w09_unavailable_sensors.xml, which takes
 #     back handheld_core_hardware.xml's compass (device series 0031/0032).
+# 17. Modem, for the GNSS engine on its DSP: ags_modem_holder (holds /dev/subsys_modem open; stock's
+#     pm-proxy aborts on Android 10's larger binder Parcel) and init.ags_w09.modem.rc (rmt_storage,
+#     tftp_server, modem restart level RELATED). Device series 0033; its policy comes with stage A.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -89,6 +92,8 @@ cp "$OUT/etc/init/init.ags_w09.usb.rc" "$OUT/etc/init/init.ags_w09.bt.rc" "$S/et
 cp "$OUT/bin/hw/hostapd" "$S/bin/hw/hostapd"; cp "$OUT/etc/init/hostapd.android.rc" "$S/etc/init/"   # item 15
 mkdir -p "$S/etc/permissions"   # item 16
 cp "$ROOT/device/huawei/ags_w09/configs/sensors/ags_w09_unavailable_sensors.xml" "$S/etc/permissions/"
+mkdir -p "$S/bin"; cp "$OUT/bin/ags_modem_holder" "$S/bin/"   # item 17
+cp "$OUT/etc/init/init.ags_w09.modem.rc" "$S/etc/init/"
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
@@ -183,6 +188,9 @@ for f in $(find . -type f | sed 's#^\./##'); do
             bin/hw/vendor.lineage.livedisplay@2.0-service.ags_w09)
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:hal_lineage_livedisplay_sysfs_exec:s0 "$d" ;;
+            bin/ags_modem_holder)    # item 17
+                chown root:shell "$d"; chmod 755 "$d"
+                chcon u:object_r:vendor_per_mgr_exec:s0 "$d" ;;
             bin/hw/hostapd)    # item 15
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:hal_wifi_hostapd_default_exec:s0 "$d" ;;

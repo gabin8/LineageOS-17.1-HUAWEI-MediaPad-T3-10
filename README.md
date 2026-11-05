@@ -57,6 +57,13 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   address by DHCP, 38 Mbit/s (2.4 GHz only, 802.11n). On this Wi-Fi-only tablet Android turns
   Wi-Fi off while the hotspot is on, so the hotspot has no internet to share: it is a local
   network. Wi-Fi comes back when the hotspot is turned off (with the Wi-Fi HAL patch below).
+  0033 boots the modem, which hosts the GNSS engine on MSM8917 even on this Wi-Fi model (Huawei
+  lists GPS/GLONASS/BeiDou, without A-GPS on AGS-W09). Neither port had started it, so GPS could
+  not work. The stock helpers run again (rmt_storage serves the modem's file system on
+  modemst1/2, fsg and fsc; tftp_server), and a small holder keeps the modem up, as stock's pm-proxy
+  did: that one crashes on Android 10 (Huawei's Android 8 peripheral-manager client overflows the
+  larger binder Parcel). A modem crash restarts the modem alone. The modem reaches ONLINE at boot
+  and offers its location service; GPS itself still needs the Qualcomm location stack.
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
@@ -142,7 +149,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); modem boots for the GNSS engine (0033) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 

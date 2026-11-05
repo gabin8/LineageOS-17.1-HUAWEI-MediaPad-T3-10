@@ -30,3 +30,4 @@
 0030-wifi-declare-the-hostapd-HAL-Wi-Fi-hotspot.patch
 0031-sensors-no-ambient-light-sensor-claim.patch
 0032-sensors-accelerometer-and-step-counter-only.patch
+0033-modem-boot-the-modem-subsystem-for-the-GNSS-engine.patch
