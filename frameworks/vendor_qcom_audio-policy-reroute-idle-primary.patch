@@ -1,0 +1,40 @@
+From 04cf38a2ed251782cd28ec7aa490a060be0d4655 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 17:28:29 +0200
+Subject: [PATCH] policy_hal: reroute the idle primary output on setForceUse
+
+AOSP reroutes every output when a forced usage changes; the CAF policy
+only reroutes active outputs. The idle primary output then stayed on the
+speaker after setForceUse(COMMUNICATION, BT_SCO). The msm8937 audio HAL
+takes the devices of the compress VoIP usecase from the primary output
+while no VoIP output stream is open, so VoIP capture alone
+(VOICE_COMMUNICATION at 8/16 kHz with Bluetooth SCO on) recorded from the
+built-in microphone (voice-speaker-mic) instead of the headset.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I00b47f390879b91f4c34d5d32824c3765674f394
+---
+ policy_hal/AudioPolicyManager.cpp | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/policy_hal/AudioPolicyManager.cpp b/policy_hal/AudioPolicyManager.cpp
+index 72d38fc..3b45493 100755
+--- a/policy_hal/AudioPolicyManager.cpp
++++ b/policy_hal/AudioPolicyManager.cpp
+@@ -993,7 +993,12 @@ void AudioPolicyManagerCustom::setForceUse(audio_policy_force_use_t usage,
+     for (size_t i = mOutputs.size(); i > 0; i--) {
+         sp<SwAudioOutputDescriptor> outputDesc = mOutputs.valueAt(i-1);
+         DeviceVector newDevices = getNewOutputDevices(outputDesc, true /*fromCache*/);
+-        if (outputDesc->isActive() && ((mEngine->getPhoneState() != AUDIO_MODE_IN_CALL) ||
++        // The primary output is rerouted even when idle, as in AOSP: the audio HAL takes the
++        // devices of the VoIP and voice usecases from it when no VoIP output stream is open
++        // (compress VoIP capture alone), so leaving it on the old device after
++        // setForceUse(COMMUNICATION, BT_SCO) records from the built-in mic instead of the headset.
++        if ((outputDesc->isActive() || outputDesc == mPrimaryOutput) &&
++            ((mEngine->getPhoneState() != AUDIO_MODE_IN_CALL) ||
+             (outputDesc != mPrimaryOutput))) {
+             waitMs = setOutputDevices(outputDesc, newDevices, !newDevices.isEmpty(),
+                                      delayMs);
+-- 
+2.53.0
+
