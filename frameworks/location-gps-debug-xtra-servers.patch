@@ -1,0 +1,34 @@
+From 3e94a9e0d67ed9bb6c23fad0c5b1f35a8bb4a165 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 12:41:06 +0200
+Subject: [PATCH] location: Qualcomm XTRA servers for the AGS-W09 GNSS HAL
+
+The legacy Qualcomm GNSS HAL on this tablet takes XTRA through
+IGnssXtra, so Android 10 downloads it, but only from servers in the GPS
+properties. No carrier config sets them on a Wi-Fi tablet: add the
+servers from the vendor gps.conf to gps_debug.conf.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I5482a416fc39a43bbc77f89f7443e1a681b56964
+---
+ .../core/java/com/android/server/location/gps_debug.conf   | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/services/core/java/com/android/server/location/gps_debug.conf b/services/core/java/com/android/server/location/gps_debug.conf
+index 34ce96f3..fd6ddda0 100644
+--- a/services/core/java/com/android/server/location/gps_debug.conf
++++ b/services/core/java/com/android/server/location/gps_debug.conf
+@@ -50,3 +50,10 @@
+ # Set bit 0x2 if NI GPS functionalities are to be locked
+ # default - non is locked for backward compatibility
+ #GPS_LOCK = 0
++
++# AGS-W09: Qualcomm XTRA (predicted orbits) servers, as in the vendor gps.conf. The GNSS HAL
++# asks Android to download XTRA (IGnssXtra); without servers the download fails and every
++# cold start takes about 90 s.
++XTRA_SERVER_1=https://xtrapath1.izatcloud.net/xtra3grc.bin
++XTRA_SERVER_2=https://xtrapath2.izatcloud.net/xtra3grc.bin
++XTRA_SERVER_3=https://xtrapath3.izatcloud.net/xtra3grc.bin
+-- 
+2.53.0
+

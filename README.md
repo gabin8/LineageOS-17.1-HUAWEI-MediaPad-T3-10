@@ -79,6 +79,15 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   "Set GNSS constellation failed" line in the log when the GPS service starts. Huawei's stock
   modem firmware (AGS-W09 8.0.0.161) rejects it the same way, and stock's location library sends
   the same request, so stock had no raw measurements on this tablet either.
+  XTRA (Qualcomm's satellite orbit predictions, the assistance a Wi-Fi tablet can get) was never
+  used: the location stack found its own "XTRA Client 2.0" and therefore turned off the HAL's
+  IGnssXtra, but that client only starts inside system_server, where Android 7 ran the HAL. Stage
+  A2 item 18 patches one byte in `liblbs_core.so` so the check fails; Android then downloads XTRA
+  itself and the HAL injects it (checked: 21,817 bytes from izatcloud.net, all 22 parts accepted
+  by the modem). `frameworks/location-gps-debug-xtra-servers.patch` gives Android the servers
+  (system image). Android downloads XTRA at every boot once Wi-Fi is up, and on demand; the
+  modem's own refresh request still goes to the unused client, so after about a week without a
+  reboot the data expires until the next boot.
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
@@ -127,6 +136,9 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     takes longer than 100 ms to stop (75–115 ms on this tablet); `wpa_supplicant` then could not
     open `p2p0`. Huawei's stock HAL does not wait at all and always restarts the driver; the HAL
     now waits up to 1 s, so the restart always follows. Installed with the HAL by stage A2.
+  - `location-gps-debug-xtra-servers.patch` — Qualcomm's XTRA servers (as in the vendor gps.conf)
+    in `gps_debug.conf`, the only GPS configuration a Wi-Fi tablet has on Android 10 (no carrier
+    config): without them Android cannot download XTRA for the GNSS HAL.
   - `Recorder-last-item-refresh.patch` — after a first recording (or after deleting the last
     one) the play icon did not appear until Recorder was reopened: the app saves the last item
     after its screen refresh and only refreshed on recording-status changes.

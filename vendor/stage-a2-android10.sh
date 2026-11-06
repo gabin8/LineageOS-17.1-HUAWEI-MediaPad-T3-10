@@ -66,6 +66,14 @@
 # 17. Modem, for the GNSS engine on its DSP: ags_modem_holder (holds /dev/subsys_modem open; stock's
 #     pm-proxy aborts on Android 10's larger binder Parcel) and init.ags_w09.modem.rc (rmt_storage,
 #     tftp_server, modem restart level RELATED). Device series 0033; its policy comes with stage A.
+# 18. XTRA (GPS assistance data) for the modem. Qualcomm's location stack looks for its own "XTRA
+#     Client 2.0" (dlsym of izat_xtra::initXtra in libizat_core.so) and, when found, disables the
+#     HAL's IGnssXtra; but that client only starts inside system_server (Android 7), never in
+#     Android 10's GNSS service, so the modem got no XTRA at all (cold start ~90 s). Rename the
+#     looked-up symbol in liblbs_core.so (...initXtraEv -> ...initXtraEX): the lookup fails, the HAL
+#     keeps IGnssXtra and Android downloads XTRA (servers: frameworks/location-gps-debug-xtra-
+#     servers.patch). The modem's own refresh request still ends in that client: Android downloads
+#     XTRA at every boot and on demand.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -173,6 +181,24 @@ d[off:off + 4] = bytes.fromhex('00207047')
 open(sys.argv[2], 'wb').write(d)
 EOF
 rm -f "$S/cam.so"
+# liblbs_core.so (item 18): rename the symbol its native-XTRA-client check looks up.
+for b in lib lib64; do
+    adb pull /vendor/$b/liblbs_core.so "$S/lbs.so" >/dev/null
+    python3 - "$S/lbs.so" "$S/$b/liblbs_core.so" $b <<'EOF'
+import hashlib, sys
+d = bytearray(open(sys.argv[1], 'rb').read())
+h = hashlib.sha256(d).hexdigest()[:16]
+orig, patched, off = {'lib': ('3be5f488241c7c62', '547aaa607c227e0b', 0xe992),
+                      'lib64': ('00ab12d40215970f', 'd52aefd6f94381bc', 0xf3e6)}[sys.argv[3]]
+if h == patched:
+    sys.exit(0)                        # already patched: nothing staged
+assert h == orig, 'unknown liblbs_core.so, not patching'
+assert d[off - 23:off + 2] == b'_ZN9izat_xtra8initXtraEv\0'
+d[off] = ord('X')
+open(sys.argv[2], 'wb').write(d)
+EOF
+done
+rm -f "$S/lbs.so"
 adb shell rm -rf /tmp/a2files
 adb push "$S" /tmp/a2files >/dev/null
 adb shell sh -s <<'EOF'
