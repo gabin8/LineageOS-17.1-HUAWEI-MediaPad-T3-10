@@ -1,0 +1,171 @@
+From f00e1e1541183855d9b632738f205a6126939583 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 17:38:39 +0200
+Subject: [PATCH] tools: gnss_probe, a bench test for the GNSS HAL
+
+Starts standalone navigation through android.hardware.gnss@1.0 and
+reports satellites per constellation (C/N0, used in fix), engine status
+and time to first fix; "delete" drops all aiding data first for a cold
+start. It never prints the position, only whether one was reported and
+its accuracy. Not installed by the product: m gnss_probe, push, run as
+root, then restart gnss_service.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ tools/gnss_probe/Android.bp     |  13 ++++
+ tools/gnss_probe/gnss_probe.cpp | 123 ++++++++++++++++++++++++++++++++
+ 2 files changed, 136 insertions(+)
+ create mode 100644 tools/gnss_probe/Android.bp
+ create mode 100644 tools/gnss_probe/gnss_probe.cpp
+
+diff --git a/tools/gnss_probe/Android.bp b/tools/gnss_probe/Android.bp
+new file mode 100644
+index 0000000..09b4265
+--- /dev/null
++++ b/tools/gnss_probe/Android.bp
+@@ -0,0 +1,13 @@
++// Bench test tool, not installed by the product: m gnss_probe, push and run as root.
++cc_binary {
++    name: "gnss_probe",
++    vendor: true,
++    srcs: ["gnss_probe.cpp"],
++    shared_libs: [
++        "android.hardware.gnss@1.0",
++        "libhidlbase",
++        "libhidltransport",
++        "libutils",
++    ],
++    cflags: ["-Wall", "-Werror"],
++}
+diff --git a/tools/gnss_probe/gnss_probe.cpp b/tools/gnss_probe/gnss_probe.cpp
+new file mode 100644
+index 0000000..b391358
+--- /dev/null
++++ b/tools/gnss_probe/gnss_probe.cpp
+@@ -0,0 +1,123 @@
++// Bench test for the GNSS HAL: starts standalone navigation and reports satellites (per
++// constellation, C/N0, used in fix), engine status and time to first fix. It never prints the
++// position itself, only whether one was reported and its accuracy.
++// It replaces the framework's HAL callback while it runs: restart gnss_service afterwards.
++// Usage: gnss_probe [seconds] [delete]   ("delete" drops all aiding data first: a cold start)
++#include <android/hardware/gnss/1.0/IGnss.h>
++#include <hidl/HidlTransportSupport.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <time.h>
++#include <unistd.h>
++
++#include <atomic>
++#include <map>
++
++using android::sp;
++using android::hardware::hidl_string;
++using android::hardware::Return;
++using android::hardware::Void;
++using namespace android::hardware::gnss::V1_0;
++
++static double now() {
++    timespec t;
++    clock_gettime(CLOCK_MONOTONIC, &t);
++    return t.tv_sec + t.tv_nsec / 1e9;
++}
++
++static double gStart;
++static std::atomic<int> gFixes{0};
++static std::atomic<double> gTtff{-1};
++
++static const char* constellation(GnssConstellationType c) {
++    switch (c) {
++        case GnssConstellationType::GPS: return "GPS";
++        case GnssConstellationType::SBAS: return "SBAS";
++        case GnssConstellationType::GLONASS: return "GLONASS";
++        case GnssConstellationType::QZSS: return "QZSS";
++        case GnssConstellationType::BEIDOU: return "BEIDOU";
++        case GnssConstellationType::GALILEO: return "GALILEO";
++        default: return "OTHER";
++    }
++}
++
++struct Callback : public IGnssCallback {
++    Return<void> gnssLocationCb(const GnssLocation& l) override {
++        int n = ++gFixes;
++        if (gTtff < 0) gTtff = now() - gStart;
++        if (n == 1 || n % 10 == 0)
++            printf("%6.1fs FIX #%d: accuracy %.1f m%s\n", now() - gStart, n, l.horizontalAccuracyMeters,
++                   (l.gnssLocationFlags & GnssLocationFlags::HAS_ALTITUDE) ? ", with altitude" : "");
++        fflush(stdout);
++        return Void();
++    }
++    Return<void> gnssStatusCb(IGnssCallback::GnssStatusValue s) override {
++        printf("%6.1fs engine status %d\n", now() - gStart, static_cast<int>(s));
++        fflush(stdout);
++        return Void();
++    }
++    Return<void> gnssSvStatusCb(const IGnssCallback::GnssSvStatus& s) override {
++        static double last = -100;
++        if (now() - last < 10) return Void();   // one summary every 10 s
++        last = now();
++        std::map<std::string, int> seen;
++        int used = 0, strong = 0;
++        float best = 0;
++        for (unsigned i = 0; i < s.numSvs; i++) {
++            const auto& sv = s.gnssSvList[i];
++            seen[constellation(sv.constellation)]++;
++            if (sv.svFlag & IGnssCallback::GnssSvFlags::USED_IN_FIX) used++;
++            if (sv.cN0Dbhz >= 25) strong++;
++            if (sv.cN0Dbhz > best) best = sv.cN0Dbhz;
++        }
++        printf("%6.1fs satellites %u (", now() - gStart, s.numSvs);
++        for (auto& kv : seen) printf(" %s %d", kv.first.c_str(), kv.second);
++        printf(" ) strongest C/N0 %.0f dB-Hz, >=25 dB-Hz: %d, used in fix: %d\n", best, strong, used);
++        fflush(stdout);
++        return Void();
++    }
++    Return<void> gnssNmeaCb(int64_t, const hidl_string&) override { return Void(); }
++    Return<void> gnssSetCapabilitesCb(uint32_t caps) override {
++        printf("capabilities 0x%x\n", caps);
++        return Void();
++    }
++    Return<void> gnssAcquireWakelockCb() override { return Void(); }
++    Return<void> gnssReleaseWakelockCb() override { return Void(); }
++    Return<void> gnssRequestTimeCb() override { return Void(); }
++    Return<void> gnssSetSystemInfoCb(const IGnssCallback::GnssSystemInfo& i) override {
++        printf("engine year of hardware: %u\n", i.yearOfHw);
++        return Void();
++    }
++};
++
++int main(int argc, char** argv) {
++    int secs = argc > 1 ? atoi(argv[1]) : 120;
++    android::hardware::configureRpcThreadpool(2, false);
++    sp<IGnss> gnss = IGnss::getService();
++    if (gnss == nullptr) {
++        printf("no IGnss service\n");
++        return 1;
++    }
++    gStart = now();
++    sp<Callback> cb = new Callback();
++    printf("setCallback: %d\n", static_cast<bool>(gnss->setCallback(cb)));
++    if (argc > 2 && !strcmp(argv[2], "delete")) {   // cold start: drop all aiding data first
++        printf("deleteAidingData(DELETE_ALL): %d\n",
++               gnss->deleteAidingData(IGnss::GnssAidingData::DELETE_ALL).isOk());
++        sleep(2);
++    }
++    printf("setPositionMode: %d\n",
++           static_cast<bool>(gnss->setPositionMode(IGnss::GnssPositionMode::STANDALONE,
++                                                   IGnss::GnssPositionRecurrence::RECURRENCE_PERIODIC,
++                                                   1000, 0, 0)));
++    printf("start: %d\n", static_cast<bool>(gnss->start()));
++    fflush(stdout);
++    sleep(secs);
++    gnss->stop();
++    printf("done after %d s: %d fixes, time to first fix %s", secs, gFixes.load(),
++           gTtff < 0 ? "none\n" : "");
++    if (gTtff >= 0) printf("%.1f s\n", gTtff.load());
++    return 0;
++}
+-- 
+2.53.0
+

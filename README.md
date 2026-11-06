@@ -74,6 +74,8 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   (GPS, GLONASS, BeiDou, SBAS, QZSS), up to 28 used in the fix, reported accuracy 4.6 m.
   Apps get it through Android's location service: in Organic Maps (F-Droid) the first fix came
   14 s after the app asked (warm start), and the position on the map was confirmed correct.
+  The satellite counts and fix times come from 0035's bench tool `gnss_probe` (not installed by
+  the product; it reports satellites, fix and accuracy but never the position).
   Raw GNSS measurements (Android's GnssMeasurement API, used by tools like GnssLogger) are not
   available: the modem rejects the measurement-report setup with a general failure, which is the
   "Set GNSS constellation failed" line in the log when the GPS service starts. Huawei's stock

@@ -32,3 +32,4 @@
 0032-sensors-accelerometer-and-step-counter-only.patch
 0033-modem-boot-the-modem-subsystem-for-the-GNSS-engine.patch
 0034-proprietary-files-drop-1-875-blobs-nothing-on-this-t.patch
+0035-tools-gnss_probe-a-bench-test-for-the-GNSS-HAL.patch
