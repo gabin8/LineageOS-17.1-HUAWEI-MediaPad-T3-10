@@ -1,0 +1,34 @@
+From af571218d8b96ccc5c1659458e8c01f9b73d7572 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 19:29:22 +0200
+Subject: [PATCH] sepolicy: quiet SystemUI's lookup of the Bluetooth app's data
+ dir
+
+SystemUI draws the Bluetooth app's notifications (its file transfer
+summaries are re-posted at every boot) with that app's resources;
+creating the class loader makes the linker resolve the bundled app's
+library permitted paths, which include /data/user_de/0/
+com.android.bluetooth (bluetooth_data_file): two getattr denials per
+boot. SystemUI loads no code from there, so keep it denied, quietly.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ sepolicy/platform_app.te | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 sepolicy/platform_app.te
+
+diff --git a/sepolicy/platform_app.te b/sepolicy/platform_app.te
+new file mode 100644
+index 0000000..26c8b0e
+--- /dev/null
++++ b/sepolicy/platform_app.te
+@@ -0,0 +1,6 @@
++# SystemUI draws the Bluetooth app's notifications (file transfer summaries, which it re-posts at
++# every boot, pairing requests) with that app's resources. Creating the app's class loader makes
++# the linker resolve its library permitted paths, which for a bundled app include its data
++# directory (/data/user_de/0/com.android.bluetooth, bluetooth_data_file). SystemUI loads no code
++# from there: keep the lookup denied, quietly.
++dontaudit platform_app bluetooth_data_file:dir getattr;
+-- 
+2.53.0
+
