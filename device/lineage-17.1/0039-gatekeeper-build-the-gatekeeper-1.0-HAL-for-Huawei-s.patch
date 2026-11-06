@@ -1,0 +1,34 @@
+From 895b3fd64fa1e58589acaa08598c455ec3a30aeb Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 19:53:05 +0200
+Subject: [PATCH 39/40] gatekeeper: build the gatekeeper@1.0 HAL for Huawei's
+ TrustZone module
+
+The 15.1 port set Huawei's TrustZone keystore and gatekeeper modules
+aside (software keystore and gatekeeper). With qseecomd running they
+work: the keymaster TrustZone app serves both. The keymaster@3.0 HAL
+picks keystore.msm8937.so by itself; the gatekeeper HAL needs its
+service again (installed and declared by stage A2 on the prebuilt
+vendor).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ product/gatekeeper.mk | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 product/gatekeeper.mk
+
+diff --git a/product/gatekeeper.mk b/product/gatekeeper.mk
+new file mode 100644
+index 0000000..892fb25
+--- /dev/null
++++ b/product/gatekeeper.mk
+@@ -0,0 +1,6 @@
++# Gatekeeper (lock screen credential checks) in TrustZone: Huawei's gatekeeper.msm8937.so talks to
++# the keymaster TrustZone app, which serves both. The 15.1 port had set the TrustZone modules aside
++# and used AOSP's software gatekeeper; with qseecomd running (init.ags_w09.tee.rc) they work.
++PRODUCT_PACKAGES += \
++    android.hardware.gatekeeper@1.0-impl \
++    android.hardware.gatekeeper@1.0-service
+-- 
+2.53.0
+

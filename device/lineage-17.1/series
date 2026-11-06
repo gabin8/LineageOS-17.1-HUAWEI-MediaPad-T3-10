@@ -36,3 +36,5 @@
 0036-sepolicy-let-the-DRM-HAL-use-data-mediadrm-as-stock-.patch
 0037-tee-start-qseecomd-Qualcomm-s-listener-daemon-for-Tr.patch
 0038-sepolicy-quiet-SystemUI-s-lookup-of-the-Bluetooth-ap.patch
+0039-gatekeeper-build-the-gatekeeper-1.0-HAL-for-Huawei-s.patch
+0040-sepolicy-keep-vold-s-fstrim-out-of-persist-quietly.patch

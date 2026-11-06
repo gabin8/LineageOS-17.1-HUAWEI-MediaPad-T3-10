@@ -1,0 +1,28 @@
+From 80c3434b68e3107366d9c4d90d8dd4079603b43e Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 19:53:05 +0200
+Subject: [PATCH 40/40] sepolicy: keep vold's fstrim out of /persist, quietly
+
+vold's daily fstrim walks every fstab mount point and was denied
+reading /persist. That partition (calibration, the secure-world key
+store) is 64 MB and rarely written: no need to trim it or to let vold
+in.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ sepolicy/vold.te | 3 +++
+ 1 file changed, 3 insertions(+)
+ create mode 100644 sepolicy/vold.te
+
+diff --git a/sepolicy/vold.te b/sepolicy/vold.te
+new file mode 100644
+index 0000000..1748336
+--- /dev/null
++++ b/sepolicy/vold.te
+@@ -0,0 +1,3 @@
++# vold's daily fstrim walks every fstab mount point; /persist (calibration, the secure-world key
++# store) is 64 MB and rarely written, so trimming it gains nothing: keep vold out, quietly.
++dontaudit vold persist_file:dir read;
+-- 
+2.53.0
+
