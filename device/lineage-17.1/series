@@ -31,3 +31,4 @@
 0031-sensors-no-ambient-light-sensor-claim.patch
 0032-sensors-accelerometer-and-step-counter-only.patch
 0033-modem-boot-the-modem-subsystem-for-the-GNSS-engine.patch
+0034-proprietary-files-drop-1-875-blobs-nothing-on-this-t.patch

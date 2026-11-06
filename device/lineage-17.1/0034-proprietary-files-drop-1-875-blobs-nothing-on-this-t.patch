@@ -1,0 +1,2503 @@
+From 4de65bc6c88b97607f22311cb02ae9ab7100e294 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 13:44:38 +0200
+Subject: [PATCH] proprietary-files: drop 1,875 blobs nothing on this tablet
+ uses
+
+From a reachability audit of the vendor partition (port vendor/blob-audit.md):
+camera tuning, sensor, actuator and EEPROM libraries of other Huawei
+devices' sensors (camera_config_Agassi.xml names the four this tablet can
+have), mobile network/IMS/RCS and data-path code, Huawei factory and MMI
+test code, clients of unused TrustZone apps, stock-kernel modules and
+libraries that cannot link on Android 10. None is loaded, linked or named
+by anything that stays; parked on the tablet, boot and features unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ proprietary-files.txt | 1875 -----------------------------------------
+ 1 file changed, 1875 deletions(-)
+
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index 31127a8..2118132 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -8,16 +8,12 @@
+ -vendor/app/TimeService/TimeService.apk
+ vendor/bin/adsprpcd
+ vendor/bin/applypatch
+-vendor/bin/ATFWD-daemon
+ vendor/bin/athdiag
+ vendor/bin/audiod
+ vendor/bin/audioflacapp
+ vendor/bin/blkid
+ vendor/bin/brctl
+ vendor/bin/btnvtool
+-vendor/bin/bt_aging
+-vendor/bin/bt_power_off
+-vendor/bin/chamomile_provision
+ vendor/bin/chargelogcat
+ vendor/bin/chargemonitor
+ vendor/bin/checkntfs
+@@ -29,8 +25,6 @@ vendor/bin/debuggerd
+ vendor/bin/debuggerd64
+ vendor/bin/defragd
+ vendor/bin/dhcpcd
+-vendor/bin/diag_callback_sample
+-vendor/bin/diag_dci_sample
+ vendor/bin/diag_klog
+ vendor/bin/diag_mdlog
+ vendor/bin/diag_socket_log
+@@ -38,10 +32,8 @@ vendor/bin/diag_uart_log
+ vendor/bin/dpmd
+ vendor/bin/DR_AP_Service
+ vendor/bin/dsm_ctrl
+-vendor/bin/dun-server
+ vendor/bin/e2fsck
+ vendor/bin/ebtables
+-vendor/bin/esepmdaemon
+ vendor/bin/eventcat
+ vendor/bin/exfatfsck
+ vendor/bin/e_loop
+@@ -68,14 +60,11 @@ vendor/bin/hostapd_cli
+ vendor/bin/hs20-osu-client
+ vendor/bin/hvdcp_opti
+ vendor/bin/hwnff
+-vendor/bin/imscmservice
+ vendor/bin/imsdatadaemon
+ vendor/bin/imsqmidaemon
+ vendor/bin/ims_rtp_daemon
+ vendor/bin/inotifywait
+ vendor/bin/iop
+-vendor/bin/ipacm
+-vendor/bin/ipacm-diag
+ vendor/bin/iperf
+ vendor/bin/irsc_util
+ vendor/bin/iw
+@@ -106,7 +95,6 @@ vendor/bin/mmi
+ vendor/bin/mmi_agent32
+ vendor/bin/mmi_agent64
+ vendor/bin/mmi_diag
+-vendor/bin/modempre
+ vendor/bin/msm_irqbalance
+ vendor/bin/ndc
+ vendor/bin/netcfg
+@@ -123,9 +111,7 @@ vendor/bin/port-bridge
+ vendor/bin/ppd
+ vendor/bin/ptt_socket_app
+ vendor/bin/qcom-system-daemon
+-vendor/bin/qmuxd
+ vendor/bin/qseecomd
+-vendor/bin/qseeproxysampledaemon
+ vendor/bin/qti
+ vendor/bin/r
+ vendor/bin/radish
+@@ -134,13 +120,11 @@ vendor/bin/reboot
+ vendor/bin/resize.f2fs
+ vendor/bin/resize2fs
+ vendor/bin/rild
+-vendor/bin/rmnetcli
+ vendor/bin/rmt_storage
+ vendor/bin/run-as
+ vendor/bin/schedtest
+ vendor/bin/sdcard
+ vendor/bin/secdiscard
+-vendor/bin/secure_ui_sample_client
+ vendor/bin/sensors.qcom
+ vendor/bin/setup_fs
+ vendor/bin/sgdisk
+@@ -148,11 +132,8 @@ vendor/bin/sh
+ vendor/bin/sigma_dut
+ vendor/bin/sleeplogcat
+ vendor/bin/slim_daemon
+-vendor/bin/ssr_diag
+ vendor/bin/ssr_setup
+-vendor/bin/StoreKeybox
+ vendor/bin/subsystem_ramdump
+-vendor/bin/tbaseLoader
+ vendor/bin/tftp_server
+ vendor/bin/thermal-daemon
+ vendor/bin/thermal-engine
+@@ -169,7 +150,6 @@ vendor/bin/vendor_cmd_tool
+ vendor/bin/vold
+ vendor/bin/wcnss_filter
+ vendor/bin/wcnss_service
+-vendor/bin/wdsdaemon
+ vendor/bin/wfdservice
+ vendor/bin/wifichrdump
+ vendor/bin/WifiLogger_app
+@@ -3277,16 +3257,10 @@ vendor/lib/lib-dplmedia.so
+ vendor/lib/lib-ims-rcscmjni.so
+ vendor/lib/lib-imsdpl.so
+ vendor/lib/lib-imsqimf.so
+-vendor/lib/lib-imsrcs.so
+-vendor/lib/lib-imsrcscm.so
+ vendor/lib/lib-imsrcscmclient.so
+-vendor/lib/lib-imsrcscmservice.so
+ vendor/lib/lib-imss.so
+-vendor/lib/lib-imsSDP.so
+-vendor/lib/lib-imsvt.so
+ vendor/lib/lib-imsxml.so
+ vendor/lib/lib-rcsimssjni.so
+-vendor/lib/lib-rcsjni.so
+ vendor/lib/lib-rtpcommon.so
+ vendor/lib/lib-rtpcore.so
+ vendor/lib/lib-rtpdaemoninterface.so
+@@ -3296,36 +3270,8 @@ vendor/lib/libacdb-fts.so
+ vendor/lib/libacdbloader.so
+ vendor/lib/libacdbmapper.so
+ vendor/lib/libacdbrtac.so
+-vendor/lib/libactuator_ad5816g.so
+-vendor/lib/libactuator_ad5823.so
+-vendor/lib/libactuator_ak7345.so
+-vendor/lib/libactuator_ak7371.so
+-vendor/lib/libactuator_bu64244gwz.so
+-vendor/lib/libactuator_bu64297.so
+ vendor/lib/libactuator_cn3927e_gc5035_kingcome.so
+-vendor/lib/libactuator_dw9714.so
+-vendor/lib/libactuator_dw9714_hi1333_qtech_atomu.so
+-vendor/lib/libactuator_dw9714_hi1333_qtech_lnd.so
+-vendor/lib/libactuator_dw9714_hi1333_qtech_ygn.so
+-vendor/lib/libactuator_dw9714_hi553.so
+-vendor/lib/libactuator_dw9714_ov13855_hlt_lnd.so
+-vendor/lib/libactuator_dw9714_ov13855_ofilm_lnd.so
+ vendor/lib/libactuator_dw9714_s5k5e8_holitech.so
+-vendor/lib/libactuator_dw9716.so
+-vendor/lib/libactuator_dw9761b.so
+-vendor/lib/libactuator_dw9763.so
+-vendor/lib/libactuator_fp5510a_ov13855_sunny_atomu.so
+-vendor/lib/libactuator_fp5510a_s5k3l6_byd_atomu.so
+-vendor/lib/libactuator_fp5510a_s5k3l6_sunny_atomu.so
+-vendor/lib/libactuator_gt9762_s5k3l6_ofilm.so
+-vendor/lib/libactuator_lc898122.so
+-vendor/lib/libactuator_lc898212xd.so
+-vendor/lib/libactuator_lc898212xd_qc2002.so
+-vendor/lib/libactuator_lc898217xc.so
+-vendor/lib/libactuator_pseudo.so
+-vendor/lib/libactuator_rohm_bu64243gwz.so
+-vendor/lib/libactuator_zc524s_hi1333_ofilm_atomu.so
+-vendor/lib/libactuator_zc524s_ov13855_sunny_ygn.so
+ vendor/lib/libadiertac.so
+ vendor/lib/libadm.so
+ vendor/lib/libadpcmdec.so
+@@ -3335,7 +3281,6 @@ vendor/lib/libadsp_default_listener.so
+ vendor/lib/libAlacSwDec.so
+ vendor/lib/libalarmservice_jni.so
+ vendor/lib/libalsautils.so
+-vendor/lib/libAntiTheftService.so
+ vendor/lib/libantradio.so
+ vendor/lib/libApeSwDec.so
+ vendor/lib/libaptXScheduler.so
+@@ -3350,19 +3295,14 @@ vendor/lib/libaudiodevarb.so
+ vendor/lib/libaudioparsers.so
+ vendor/lib/libaudioroute.so
+ vendor/lib/libaudiospdif.so
+-vendor/lib/libaudiotestalgo.so
+ vendor/lib/libaudioutils.so
+-vendor/lib/libavenhancements.so
+ vendor/lib/libbacktrace.so
+ vendor/lib/libbase.so
+ vendor/lib/libbccQTI.so
+ vendor/lib/libBestShot.so
+-vendor/lib/libbigdatamng.so
+ vendor/lib/libbinderwrapper.so
+-vendor/lib/libBootloaderOeminfo.so
+ vendor/lib/libbt-vendor.so
+ vendor/lib/libbtaddr.so
+-vendor/lib/libbtcheck.so
+ vendor/lib/libbtinfo.so
+ vendor/lib/libbtnv.so
+ vendor/lib/libbtpower.so
+@@ -3379,72 +3319,7 @@ vendor/lib/libcamera_metadata.so
+ vendor/lib/libcamerakit_sensor.so
+ vendor/lib/libcap.so
+ vendor/lib/libCB.so
+-vendor/lib/libChamomilePA.so
+ vendor/lib/libchromaflash.so
+-vendor/lib/libchromatix_csidtg_common.so
+-vendor/lib/libchromatix_csidtg_cpp_preview.so
+-vendor/lib/libchromatix_csidtg_postproc.so
+-vendor/lib/libchromatix_csidtg_preview.so
+-vendor/lib/libchromatix_csidtg_zsl_preview.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_a3_default_video.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_common.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_preview.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_cpp_video.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_default_video.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_liveshot.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_postproc.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_preview.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_snapshot.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_zsl_preview.so
+-vendor/lib/libchromatix_gc2375A_kingcome_lnd_zsl_video.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_a3_default_video.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_common.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_preview.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_cpp_video.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_default_video.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_hfr_120.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_hfr_60.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_hfr_90.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_liveshot.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_postproc.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_preview.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_snapshot.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_zsl_preview.so
+-vendor/lib/libchromatix_gc2375A_qtech_lnd_zsl_video.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_a3_default_video.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_common.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_preview.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_cpp_video.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_default_video.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_postproc.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_preview.so
+-vendor/lib/libchromatix_gc2375_byd_atomu_snapshot.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_a3_default_preview.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_a3_default_video.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_a3_hfr_120.so
+@@ -3468,16 +3343,6 @@ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_preview.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_snapshot.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_zsl_preview.so
+ vendor/lib/libchromatix_gc2375h_kingcome_g7p2_pad_zsl_video.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_3a_default_preview.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_3a_default_video.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_common.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_cpp_liveshot.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_cpp_snapshot.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_cpp_video.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_postproc.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_preview.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_snapshot.so
+-vendor/lib/libchromatix_gc5025h_blx_atu_video.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_common.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_cpp_hfr_120.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_cpp_hfr_60.so
+@@ -3501,1448 +3366,6 @@ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_preview.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_snapshot.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_zsl_preview_3a.so
+ vendor/lib/libchromatix_gc5035_kingcome_g9m5_pad_zsl_video_3a.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_a3_default_video.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_a3_hfr_120.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_a3_hfr_60.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_a3_hfr_90.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_common.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_hfr_60.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_hfr_90.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_preview.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_cpp_video.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_default_video.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_hfr_120.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_hfr_60.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_hfr_90.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_liveshot.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_postproc.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_preview.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_snapshot.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_zsl_preview.so
+-vendor/lib/libchromatix_gc8034_byd_atomu_zsl_video.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_a3_default_video.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_common.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_preview.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_cpp_video.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_default_video.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_hfr_120.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_hfr_60.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_hfr_90.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_liveshot.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_postproc.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_preview.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_snapshot.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_zsl_preview.so
+-vendor/lib/libchromatix_gc8034_hlt_lnd_zsl_video.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_a3_default_video.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_common.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_preview.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_cpp_video.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_default_video.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_hfr_120.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_hfr_60.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_hfr_90.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_liveshot.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_postproc.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_preview.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_snapshot.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_zsl_preview.so
+-vendor/lib/libchromatix_gc8034_wingshing_lnd_zsl_video.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_common_13M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_common_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_common_video.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_liveshot_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_preview.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_preview_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_snapshot_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_video.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_cpp_video_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_default_preview_dw9714.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_postproc.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_preview.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_preview_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_snapshot.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_snapshot_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_video.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_video_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_zsl_preview.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_zsl_preview_8M.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_zsl_video.so
+-vendor/lib/libchromatix_hi1333_ofilm_atomu_zsl_video_8M.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_common.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_cpp_preview.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_cpp_video.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_default_preview_dw9714.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_default_video_dw9714.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_postproc.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_preview.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_snapshot.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_video.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_zsl_preview.so
+-vendor/lib/libchromatix_hi1333_qtech_atomu_zsl_video.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_common.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_common_8M.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_common_video.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_preview.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_cpp_video.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_default_preview_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_default_video.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_default_video_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_120.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_120_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_60.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_60_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_90.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_hfr_90_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_liveshot.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_postproc.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_preview.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_snapshot.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_zsl_preview_3a.so
+-vendor/lib/libchromatix_hi1333_qtech_lnd_zsl_video_3a.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_a3_default_preview.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_a3_default_video.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_common.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_liveshot.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_preview.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_snapshot.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_video.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_cpp_video_full.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_default_video.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_liveshot.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_postproc.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_preview.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_snapshot.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_video_full.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_zsl_preview.so
+-vendor/lib/libchromatix_hi553_qtech_zh553ab_pad_zsl_video.so
+-vendor/lib/libchromatix_hi556_byd_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_hi556_byd_atomu_a3_default_video.so
+-vendor/lib/libchromatix_hi556_byd_atomu_common.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_preview.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi556_byd_atomu_cpp_video.so
+-vendor/lib/libchromatix_hi556_byd_atomu_default_video.so
+-vendor/lib/libchromatix_hi556_byd_atomu_postproc.so
+-vendor/lib/libchromatix_hi556_byd_atomu_preview.so
+-vendor/lib/libchromatix_hi556_byd_atomu_snapshot.so
+-vendor/lib/libchromatix_hi556_byd_atomu_zsl_preview.so
+-vendor/lib/libchromatix_hi556_byd_atomu_zsl_video.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_a3_default_video.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_common.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_preview.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_cpp_video.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_default_video.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_postproc.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_preview.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_snapshot.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_zsl_preview.so
+-vendor/lib/libchromatix_hi556_kingcome_atomu_zsl_video.so
+-vendor/lib/libchromatix_hi846_byd_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_hi846_byd_atomu_a3_default_video.so
+-vendor/lib/libchromatix_hi846_byd_atomu_common.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_preview.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi846_byd_atomu_cpp_video.so
+-vendor/lib/libchromatix_hi846_byd_atomu_default_video.so
+-vendor/lib/libchromatix_hi846_byd_atomu_postproc.so
+-vendor/lib/libchromatix_hi846_byd_atomu_preview.so
+-vendor/lib/libchromatix_hi846_byd_atomu_snapshot.so
+-vendor/lib/libchromatix_hi846_byd_atomu_zsl_preview.so
+-vendor/lib/libchromatix_hi846_byd_atomu_zsl_video.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_a3_default_video.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_common.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_preview.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_cpp_video.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_default_video.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_hfr_120.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_hfr_60.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_hfr_90.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_liveshot.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_postproc.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_preview.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_snapshot.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_zsl_preview.so
+-vendor/lib/libchromatix_hi846_hlt_lnd_zsl_video.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_a3_default_video.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_common.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_preview.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_cpp_video.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_default_video.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_hfr_120.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_hfr_60.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_hfr_90.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_liveshot.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_postproc.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_preview.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_snapshot.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_zsl_preview.so
+-vendor/lib/libchromatix_hi846_jsl_lnd_zsl_video.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_a3_default_video.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_a3_hfr_120.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_a3_hfr_60.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_a3_hfr_90.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_common.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_preview.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_cpp_video.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_default_video.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_hfr_120.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_hfr_60.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_hfr_90.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_liveshot.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_postproc.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_preview.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_snapshot.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_zsl_preview.so
+-vendor/lib/libchromatix_hi846_kingcome_lnd_zsl_video.so
+-vendor/lib/libchromatix_imx214_4k_preview_lc898122.so
+-vendor/lib/libchromatix_imx214_4k_video_lc898122.so
+-vendor/lib/libchromatix_imx214_common.so
+-vendor/lib/libchromatix_imx214_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx214_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx214_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx214_cpp_liveshot.so
+-vendor/lib/libchromatix_imx214_cpp_preview.so
+-vendor/lib/libchromatix_imx214_cpp_snapshot.so
+-vendor/lib/libchromatix_imx214_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx214_cpp_video.so
+-vendor/lib/libchromatix_imx214_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx214_default_preview_lc898122.so
+-vendor/lib/libchromatix_imx214_default_video.so
+-vendor/lib/libchromatix_imx214_default_video_lc898122.so
+-vendor/lib/libchromatix_imx214_hdr_snapshot_lc898122.so
+-vendor/lib/libchromatix_imx214_hdr_video_lc898122.so
+-vendor/lib/libchromatix_imx214_hfr_120.so
+-vendor/lib/libchromatix_imx214_hfr_120_lc898122.so
+-vendor/lib/libchromatix_imx214_hfr_60.so
+-vendor/lib/libchromatix_imx214_hfr_60_lc898122.so
+-vendor/lib/libchromatix_imx214_hfr_90.so
+-vendor/lib/libchromatix_imx214_hfr_90_lc898122.so
+-vendor/lib/libchromatix_imx214_postproc.so
+-vendor/lib/libchromatix_imx214_preview.so
+-vendor/lib/libchromatix_imx214_snapshot.so
+-vendor/lib/libchromatix_imx214_snapshot_hdr.so
+-vendor/lib/libchromatix_imx214_video_hdr.so
+-vendor/lib/libchromatix_imx214_zsl_preview_lc898122.so
+-vendor/lib/libchromatix_imx214_zsl_video_lc898122.so
+-vendor/lib/libchromatix_imx230_1080p_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_1080p_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_4k_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_4k_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_common.so
+-vendor/lib/libchromatix_imx230_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx230_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx230_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx230_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx230_cpp_liveshot.so
+-vendor/lib/libchromatix_imx230_cpp_preview.so
+-vendor/lib/libchromatix_imx230_cpp_raw_hdr.so
+-vendor/lib/libchromatix_imx230_cpp_snapshot.so
+-vendor/lib/libchromatix_imx230_cpp_snapshot_downscale.so
+-vendor/lib/libchromatix_imx230_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_cpp_snapshot_upscale.so
+-vendor/lib/libchromatix_imx230_cpp_video.so
+-vendor/lib/libchromatix_imx230_cpp_video_4k.so
+-vendor/lib/libchromatix_imx230_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx230_default_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_default_video.so
+-vendor/lib/libchromatix_imx230_default_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hdr_snapshot_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hdr_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hfr_120.so
+-vendor/lib/libchromatix_imx230_hfr_120_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hfr_240.so
+-vendor/lib/libchromatix_imx230_hfr_240_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hfr_60.so
+-vendor/lib/libchromatix_imx230_hfr_60_lc898212xd.so
+-vendor/lib/libchromatix_imx230_hfr_90.so
+-vendor/lib/libchromatix_imx230_hfr_90_lc898212xd.so
+-vendor/lib/libchromatix_imx230_postproc.so
+-vendor/lib/libchromatix_imx230_preview.so
+-vendor/lib/libchromatix_imx230_qc2002_1080p_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_1080p_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_4k_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_4k_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_common.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_liveshot.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_preview.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_snapshot.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_video.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_video_4k.so
+-vendor/lib/libchromatix_imx230_qc2002_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_default_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_default_video.so
+-vendor/lib/libchromatix_imx230_qc2002_default_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hdr_snapshot_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hdr_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_120.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_120_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_240.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_240_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_60.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_60_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_90.so
+-vendor/lib/libchromatix_imx230_qc2002_hfr_90_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_liveshot.so
+-vendor/lib/libchromatix_imx230_qc2002_postproc.so
+-vendor/lib/libchromatix_imx230_qc2002_preview.so
+-vendor/lib/libchromatix_imx230_qc2002_snapshot.so
+-vendor/lib/libchromatix_imx230_qc2002_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_video_16M_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_video_4k.so
+-vendor/lib/libchromatix_imx230_qc2002_video_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_1080p_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_1080p_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_4k_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_4k_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_common.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_liveshot.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_preview.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_snapshot.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_video.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_video_4k.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_default_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_default_video.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_default_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hdr_snapshot_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hdr_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_120.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_120_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_240.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_240_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_60.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_60_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_90.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_hfr_90_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_liveshot.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_postproc.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_preview.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_snapshot.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_video_16M_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_video_4k.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_video_hdr.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_zsl_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_with_gyro_zsl_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_zsl_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_qc2002_zsl_video_lc898212xd.so
+-vendor/lib/libchromatix_imx230_raw_hdr.so
+-vendor/lib/libchromatix_imx230_raw_hdr_lc898212xd.so
+-vendor/lib/libchromatix_imx230_snapshot.so
+-vendor/lib/libchromatix_imx230_snapshot_hdr.so
+-vendor/lib/libchromatix_imx230_video_16M_lc898212xd.so
+-vendor/lib/libchromatix_imx230_video_4k.so
+-vendor/lib/libchromatix_imx230_video_hdr.so
+-vendor/lib/libchromatix_imx230_zsl_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx230_zsl_video_lc898212xd.so
+-vendor/lib/libchromatix_imx258_4k_preview_3a.so
+-vendor/lib/libchromatix_imx258_4k_video_3a.so
+-vendor/lib/libchromatix_imx258_bear_4k_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_4k_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_common.so
+-vendor/lib/libchromatix_imx258_bear_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx258_bear_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx258_bear_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx258_bear_cpp_liveshot.so
+-vendor/lib/libchromatix_imx258_bear_cpp_preview.so
+-vendor/lib/libchromatix_imx258_bear_cpp_snapshot.so
+-vendor/lib/libchromatix_imx258_bear_cpp_video.so
+-vendor/lib/libchromatix_imx258_bear_cpp_video_4k.so
+-vendor/lib/libchromatix_imx258_bear_default_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_default_video.so
+-vendor/lib/libchromatix_imx258_bear_default_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_hfr_120.so
+-vendor/lib/libchromatix_imx258_bear_hfr_120_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_hfr_60.so
+-vendor/lib/libchromatix_imx258_bear_hfr_60_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_hfr_90.so
+-vendor/lib/libchromatix_imx258_bear_hfr_90_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_postproc.so
+-vendor/lib/libchromatix_imx258_bear_preview.so
+-vendor/lib/libchromatix_imx258_bear_snapshot.so
+-vendor/lib/libchromatix_imx258_bear_video_4k.so
+-vendor/lib/libchromatix_imx258_bear_zsl_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_bear_zsl_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_common.so
+-vendor/lib/libchromatix_imx258_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx258_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx258_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx258_cpp_liveshot.so
+-vendor/lib/libchromatix_imx258_cpp_preview.so
+-vendor/lib/libchromatix_imx258_cpp_snapshot.so
+-vendor/lib/libchromatix_imx258_cpp_video.so
+-vendor/lib/libchromatix_imx258_cpp_video_4k.so
+-vendor/lib/libchromatix_imx258_default_preview_3a.so
+-vendor/lib/libchromatix_imx258_default_video.so
+-vendor/lib/libchromatix_imx258_default_video_3a.so
+-vendor/lib/libchromatix_imx258_hfr_120.so
+-vendor/lib/libchromatix_imx258_hfr_120_3a.so
+-vendor/lib/libchromatix_imx258_hfr_60.so
+-vendor/lib/libchromatix_imx258_hfr_60_3a.so
+-vendor/lib/libchromatix_imx258_hfr_90.so
+-vendor/lib/libchromatix_imx258_hfr_90_3a.so
+-vendor/lib/libchromatix_imx258_mono_4k_preview_3a.so
+-vendor/lib/libchromatix_imx258_mono_4k_video_3a.so
+-vendor/lib/libchromatix_imx258_mono_bear_4k_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_4k_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_common.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_liveshot.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_preview.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_snapshot.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_video.so
+-vendor/lib/libchromatix_imx258_mono_bear_cpp_video_4k.so
+-vendor/lib/libchromatix_imx258_mono_bear_default_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_default_video.so
+-vendor/lib/libchromatix_imx258_mono_bear_default_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_120.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_120_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_60.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_60_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_90.so
+-vendor/lib/libchromatix_imx258_mono_bear_hfr_90_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_postproc.so
+-vendor/lib/libchromatix_imx258_mono_bear_preview.so
+-vendor/lib/libchromatix_imx258_mono_bear_snapshot.so
+-vendor/lib/libchromatix_imx258_mono_bear_video_4k.so
+-vendor/lib/libchromatix_imx258_mono_bear_zsl_preview_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_bear_zsl_video_lc898217xc.so
+-vendor/lib/libchromatix_imx258_mono_common.so
+-vendor/lib/libchromatix_imx258_mono_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx258_mono_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx258_mono_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx258_mono_cpp_liveshot.so
+-vendor/lib/libchromatix_imx258_mono_cpp_preview.so
+-vendor/lib/libchromatix_imx258_mono_cpp_snapshot.so
+-vendor/lib/libchromatix_imx258_mono_cpp_video.so
+-vendor/lib/libchromatix_imx258_mono_cpp_video_4k.so
+-vendor/lib/libchromatix_imx258_mono_default_preview_3a.so
+-vendor/lib/libchromatix_imx258_mono_default_video.so
+-vendor/lib/libchromatix_imx258_mono_default_video_3a.so
+-vendor/lib/libchromatix_imx258_mono_hfr_120.so
+-vendor/lib/libchromatix_imx258_mono_hfr_120_3a.so
+-vendor/lib/libchromatix_imx258_mono_hfr_60.so
+-vendor/lib/libchromatix_imx258_mono_hfr_60_3a.so
+-vendor/lib/libchromatix_imx258_mono_hfr_90.so
+-vendor/lib/libchromatix_imx258_mono_hfr_90_3a.so
+-vendor/lib/libchromatix_imx258_mono_postproc.so
+-vendor/lib/libchromatix_imx258_mono_preview.so
+-vendor/lib/libchromatix_imx258_mono_snapshot.so
+-vendor/lib/libchromatix_imx258_mono_video_4k.so
+-vendor/lib/libchromatix_imx258_mono_zsl_preview_3a.so
+-vendor/lib/libchromatix_imx258_mono_zsl_video_3a.so
+-vendor/lib/libchromatix_imx258_postproc.so
+-vendor/lib/libchromatix_imx258_preview.so
+-vendor/lib/libchromatix_imx258_snapshot.so
+-vendor/lib/libchromatix_imx258_video_4k.so
+-vendor/lib/libchromatix_imx258_zsl_preview_3a.so
+-vendor/lib/libchromatix_imx258_zsl_video_3a.so
+-vendor/lib/libchromatix_imx298_4K_preview.so
+-vendor/lib/libchromatix_imx298_4K_video.so
+-vendor/lib/libchromatix_imx298_common.so
+-vendor/lib/libchromatix_imx298_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx298_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx298_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx298_cpp_liveshot.so
+-vendor/lib/libchromatix_imx298_cpp_preview.so
+-vendor/lib/libchromatix_imx298_cpp_snapshot.so
+-vendor/lib/libchromatix_imx298_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx298_cpp_video.so
+-vendor/lib/libchromatix_imx298_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx298_default_preview.so
+-vendor/lib/libchromatix_imx298_default_video.so
+-vendor/lib/libchromatix_imx298_gt24c64_4K_preview.so
+-vendor/lib/libchromatix_imx298_gt24c64_4K_video.so
+-vendor/lib/libchromatix_imx298_gt24c64_common.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_liveshot.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_preview.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_snapshot.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_video.so
+-vendor/lib/libchromatix_imx298_gt24c64_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx298_gt24c64_default_preview.so
+-vendor/lib/libchromatix_imx298_gt24c64_default_video.so
+-vendor/lib/libchromatix_imx298_gt24c64_hdr_snapshot_3a.so
+-vendor/lib/libchromatix_imx298_gt24c64_hdr_video_3a.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_120.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_120_3a.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_60.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_60_3a.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_90.so
+-vendor/lib/libchromatix_imx298_gt24c64_hfr_90_3a.so
+-vendor/lib/libchromatix_imx298_gt24c64_postproc.so
+-vendor/lib/libchromatix_imx298_gt24c64_preview.so
+-vendor/lib/libchromatix_imx298_gt24c64_snapshot.so
+-vendor/lib/libchromatix_imx298_gt24c64_snapshot_hdr.so
+-vendor/lib/libchromatix_imx298_gt24c64_video.so
+-vendor/lib/libchromatix_imx298_gt24c64_video_hdr.so
+-vendor/lib/libchromatix_imx298_gt24c64_zsl_preview.so
+-vendor/lib/libchromatix_imx298_gt24c64_zsl_video.so
+-vendor/lib/libchromatix_imx298_hdr_snapshot_3a.so
+-vendor/lib/libchromatix_imx298_hdr_video_3a.so
+-vendor/lib/libchromatix_imx298_hfr_120.so
+-vendor/lib/libchromatix_imx298_hfr_120_3a.so
+-vendor/lib/libchromatix_imx298_hfr_60.so
+-vendor/lib/libchromatix_imx298_hfr_60_3a.so
+-vendor/lib/libchromatix_imx298_hfr_90.so
+-vendor/lib/libchromatix_imx298_hfr_90_3a.so
+-vendor/lib/libchromatix_imx298_postproc.so
+-vendor/lib/libchromatix_imx298_preview.so
+-vendor/lib/libchromatix_imx298_snapshot.so
+-vendor/lib/libchromatix_imx298_snapshot_hdr.so
+-vendor/lib/libchromatix_imx298_video.so
+-vendor/lib/libchromatix_imx298_video_hdr.so
+-vendor/lib/libchromatix_imx298_zsl_preview.so
+-vendor/lib/libchromatix_imx298_zsl_video.so
+-vendor/lib/libchromatix_imx318_1080p_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx318_1080p_video_lc898212xd.so
+-vendor/lib/libchromatix_imx318_4k_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx318_4k_video_lc898212xd.so
+-vendor/lib/libchromatix_imx318_common.so
+-vendor/lib/libchromatix_imx318_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx318_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx318_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx318_cpp_liveshot.so
+-vendor/lib/libchromatix_imx318_cpp_preview.so
+-vendor/lib/libchromatix_imx318_cpp_snapshot.so
+-vendor/lib/libchromatix_imx318_cpp_video.so
+-vendor/lib/libchromatix_imx318_cpp_video_4k.so
+-vendor/lib/libchromatix_imx318_default_video.so
+-vendor/lib/libchromatix_imx318_fullsize_preview_lc898212xd.so
+-vendor/lib/libchromatix_imx318_fullsize_video_lc898212xd.so
+-vendor/lib/libchromatix_imx318_hfr_120.so
+-vendor/lib/libchromatix_imx318_hfr_120_lc898212xd.so
+-vendor/lib/libchromatix_imx318_hfr_240.so
+-vendor/lib/libchromatix_imx318_hfr_240_lc898212xd.so
+-vendor/lib/libchromatix_imx318_hfr_60.so
+-vendor/lib/libchromatix_imx318_hfr_60_lc898212xd.so
+-vendor/lib/libchromatix_imx318_postproc.so
+-vendor/lib/libchromatix_imx318_preview.so
+-vendor/lib/libchromatix_imx318_snapshot.so
+-vendor/lib/libchromatix_imx318_video_4k.so
+-vendor/lib/libchromatix_imx362_1080p_preview_3a.so
+-vendor/lib/libchromatix_imx362_1080p_preview_3a_bear.so
+-vendor/lib/libchromatix_imx362_1080p_video_3a.so
+-vendor/lib/libchromatix_imx362_1080p_video_3a_bear.so
+-vendor/lib/libchromatix_imx362_4k_preview_3a.so
+-vendor/lib/libchromatix_imx362_4k_preview_3a_bear.so
+-vendor/lib/libchromatix_imx362_4k_video_3a.so
+-vendor/lib/libchromatix_imx362_4k_video_3a_bear.so
+-vendor/lib/libchromatix_imx362_common.so
+-vendor/lib/libchromatix_imx362_common_bear.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_120_bear.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_240_bear.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx362_cpp_hfr_60_bear.so
+-vendor/lib/libchromatix_imx362_cpp_liveshot.so
+-vendor/lib/libchromatix_imx362_cpp_liveshot_bear.so
+-vendor/lib/libchromatix_imx362_cpp_preview.so
+-vendor/lib/libchromatix_imx362_cpp_preview_bear.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot_bear.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot_downscale_bear.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot_hdr_bear.so
+-vendor/lib/libchromatix_imx362_cpp_snapshot_upscale_bear.so
+-vendor/lib/libchromatix_imx362_cpp_video.so
+-vendor/lib/libchromatix_imx362_cpp_video_4k.so
+-vendor/lib/libchromatix_imx362_cpp_video_4k_bear.so
+-vendor/lib/libchromatix_imx362_cpp_video_bear.so
+-vendor/lib/libchromatix_imx362_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx362_cpp_video_hdr_bear.so
+-vendor/lib/libchromatix_imx362_default_preview_3a.so
+-vendor/lib/libchromatix_imx362_default_preview_3a_bear.so
+-vendor/lib/libchromatix_imx362_default_video.so
+-vendor/lib/libchromatix_imx362_default_video_3a.so
+-vendor/lib/libchromatix_imx362_default_video_3a_bear.so
+-vendor/lib/libchromatix_imx362_default_video_bear.so
+-vendor/lib/libchromatix_imx362_fullsize_preview_3a.so
+-vendor/lib/libchromatix_imx362_fullsize_preview_3a_bear.so
+-vendor/lib/libchromatix_imx362_fullsize_video_3a.so
+-vendor/lib/libchromatix_imx362_fullsize_video_3a_bear.so
+-vendor/lib/libchromatix_imx362_hdr_snapshot_3a.so
+-vendor/lib/libchromatix_imx362_hdr_snapshot_3a_bear.so
+-vendor/lib/libchromatix_imx362_hdr_video_3a.so
+-vendor/lib/libchromatix_imx362_hdr_video_3a_bear.so
+-vendor/lib/libchromatix_imx362_hfr_120.so
+-vendor/lib/libchromatix_imx362_hfr_120_3a.so
+-vendor/lib/libchromatix_imx362_hfr_120_3a_bear.so
+-vendor/lib/libchromatix_imx362_hfr_120_bear.so
+-vendor/lib/libchromatix_imx362_hfr_240.so
+-vendor/lib/libchromatix_imx362_hfr_240_3a.so
+-vendor/lib/libchromatix_imx362_hfr_240_3a_bear.so
+-vendor/lib/libchromatix_imx362_hfr_240_bear.so
+-vendor/lib/libchromatix_imx362_hfr_60.so
+-vendor/lib/libchromatix_imx362_hfr_60_3a.so
+-vendor/lib/libchromatix_imx362_hfr_60_3a_bear.so
+-vendor/lib/libchromatix_imx362_hfr_60_bear.so
+-vendor/lib/libchromatix_imx362_postproc.so
+-vendor/lib/libchromatix_imx362_postproc_bear.so
+-vendor/lib/libchromatix_imx362_preview.so
+-vendor/lib/libchromatix_imx362_preview_bear.so
+-vendor/lib/libchromatix_imx362_snapshot.so
+-vendor/lib/libchromatix_imx362_snapshot_bear.so
+-vendor/lib/libchromatix_imx362_snapshot_hdr.so
+-vendor/lib/libchromatix_imx362_snapshot_hdr_bear.so
+-vendor/lib/libchromatix_imx362_video_4k.so
+-vendor/lib/libchromatix_imx362_video_4k_bear.so
+-vendor/lib/libchromatix_imx362_video_hdr.so
+-vendor/lib/libchromatix_imx362_video_hdr_bear.so
+-vendor/lib/libchromatix_imx378_4K_preview.so
+-vendor/lib/libchromatix_imx378_4K_video.so
+-vendor/lib/libchromatix_imx378_common.so
+-vendor/lib/libchromatix_imx378_cpp_hfr_120.so
+-vendor/lib/libchromatix_imx378_cpp_hfr_240.so
+-vendor/lib/libchromatix_imx378_cpp_hfr_60.so
+-vendor/lib/libchromatix_imx378_cpp_hfr_90.so
+-vendor/lib/libchromatix_imx378_cpp_liveshot.so
+-vendor/lib/libchromatix_imx378_cpp_preview.so
+-vendor/lib/libchromatix_imx378_cpp_snapshot.so
+-vendor/lib/libchromatix_imx378_cpp_snapshot_hdr.so
+-vendor/lib/libchromatix_imx378_cpp_video.so
+-vendor/lib/libchromatix_imx378_cpp_video_hdr.so
+-vendor/lib/libchromatix_imx378_default_preview.so
+-vendor/lib/libchromatix_imx378_default_video.so
+-vendor/lib/libchromatix_imx378_hdr_snapshot_3a.so
+-vendor/lib/libchromatix_imx378_hdr_video_3a.so
+-vendor/lib/libchromatix_imx378_hfr_120.so
+-vendor/lib/libchromatix_imx378_hfr_120_3a.so
+-vendor/lib/libchromatix_imx378_hfr_240.so
+-vendor/lib/libchromatix_imx378_hfr_240_3a.so
+-vendor/lib/libchromatix_imx378_hfr_60.so
+-vendor/lib/libchromatix_imx378_hfr_60_3a.so
+-vendor/lib/libchromatix_imx378_hfr_90.so
+-vendor/lib/libchromatix_imx378_hfr_90_3a.so
+-vendor/lib/libchromatix_imx378_liveshot.so
+-vendor/lib/libchromatix_imx378_postproc.so
+-vendor/lib/libchromatix_imx378_preview.so
+-vendor/lib/libchromatix_imx378_snapshot.so
+-vendor/lib/libchromatix_imx378_snapshot_hdr.so
+-vendor/lib/libchromatix_imx378_video.so
+-vendor/lib/libchromatix_imx378_video_hdr.so
+-vendor/lib/libchromatix_imx378_zsl_preview.so
+-vendor/lib/libchromatix_imx378_zsl_video.so
+-vendor/lib/libchromatix_ov13850_common.so
+-vendor/lib/libchromatix_ov13850_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov13850_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov13850_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov13850_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov13850_cpp_liveshot.so
+-vendor/lib/libchromatix_ov13850_cpp_preview.so
+-vendor/lib/libchromatix_ov13850_cpp_snapshot.so
+-vendor/lib/libchromatix_ov13850_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov13850_cpp_video.so
+-vendor/lib/libchromatix_ov13850_cpp_video_full.so
+-vendor/lib/libchromatix_ov13850_default_preview_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_default_video.so
+-vendor/lib/libchromatix_ov13850_default_video_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_hfr_120.so
+-vendor/lib/libchromatix_ov13850_hfr_120_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_hfr_60.so
+-vendor/lib/libchromatix_ov13850_hfr_60_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_hfr_90.so
+-vendor/lib/libchromatix_ov13850_hfr_90_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_postproc.so
+-vendor/lib/libchromatix_ov13850_preview.so
+-vendor/lib/libchromatix_ov13850_q13v06k_common.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_liveshot.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_preview.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_snapshot.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_video.so
+-vendor/lib/libchromatix_ov13850_q13v06k_cpp_video_full.so
+-vendor/lib/libchromatix_ov13850_q13v06k_default_preview_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_default_video.so
+-vendor/lib/libchromatix_ov13850_q13v06k_default_video_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_120.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_120_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_60.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_60_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_90.so
+-vendor/lib/libchromatix_ov13850_q13v06k_hfr_90_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_postproc.so
+-vendor/lib/libchromatix_ov13850_q13v06k_preview.so
+-vendor/lib/libchromatix_ov13850_q13v06k_snapshot.so
+-vendor/lib/libchromatix_ov13850_q13v06k_video_full.so
+-vendor/lib/libchromatix_ov13850_q13v06k_zsl_preview_bu64297.so
+-vendor/lib/libchromatix_ov13850_q13v06k_zsl_video_bu64297.so
+-vendor/lib/libchromatix_ov13850_snapshot.so
+-vendor/lib/libchromatix_ov13850_video_full.so
+-vendor/lib/libchromatix_ov13850_zsl_preview_lc898212xd.so
+-vendor/lib/libchromatix_ov13850_zsl_video_lc898212xd.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_common.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_common_8M.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_common_video.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_preview.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_cpp_video.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_default_preview_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_default_video_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_120.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_120_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_60.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_60_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_90.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_hfr_90_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_liveshot.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_postproc.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_preview.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_snapshot.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_video.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_zsl_preview_dw9714.so
+-vendor/lib/libchromatix_ov13855_byd_lnd_zsl_video_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_common.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_common_8M.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_common_video.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_preview.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_cpp_video.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_default_preview_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_default_video_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_120.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_120_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_60.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_60_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_90.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_hfr_90_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_liveshot.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_postproc.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_preview.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_snapshot.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_video.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_zsl_preview_dw9714.so
+-vendor/lib/libchromatix_ov13855_ofilm_lnd_zsl_video_dw9714.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_common_13M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_common_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_common_video.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_liveshot_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_preview.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_preview_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_snapshot_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_video.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_cpp_video_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_default_preview_dw9714.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_postproc.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_preview.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_preview_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_snapshot.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_snapshot_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_video.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_video_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_zsl_preview.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_zsl_preview_8M.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_zsl_video.so
+-vendor/lib/libchromatix_ov13855_sunny_atomu_zsl_video_8M.so
+-vendor/lib/libchromatix_ov2281_a3_default_preview.so
+-vendor/lib/libchromatix_ov2281_a3_default_video.so
+-vendor/lib/libchromatix_ov2281_common.so
+-vendor/lib/libchromatix_ov2281_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov2281_cpp_liveshot.so
+-vendor/lib/libchromatix_ov2281_cpp_preview.so
+-vendor/lib/libchromatix_ov2281_cpp_snapshot.so
+-vendor/lib/libchromatix_ov2281_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov2281_cpp_video.so
+-vendor/lib/libchromatix_ov2281_default_video.so
+-vendor/lib/libchromatix_ov2281_postproc.so
+-vendor/lib/libchromatix_ov2281_preview.so
+-vendor/lib/libchromatix_ov2281_snapshot.so
+-vendor/lib/libchromatix_ov2281_zsl_preview.so
+-vendor/lib/libchromatix_ov2281_zsl_video.so
+-vendor/lib/libchromatix_ov2680_a3_default_preview.so
+-vendor/lib/libchromatix_ov2680_a3_default_video.so
+-vendor/lib/libchromatix_ov2680_a3_hfr_60.so
+-vendor/lib/libchromatix_ov2680_common.so
+-vendor/lib/libchromatix_ov2680_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov2680_cpp_liveshot.so
+-vendor/lib/libchromatix_ov2680_cpp_preview.so
+-vendor/lib/libchromatix_ov2680_cpp_snapshot.so
+-vendor/lib/libchromatix_ov2680_cpp_video.so
+-vendor/lib/libchromatix_ov2680_default_video.so
+-vendor/lib/libchromatix_ov2680_hfr_60.so
+-vendor/lib/libchromatix_ov2680_liveshot.so
+-vendor/lib/libchromatix_ov2680_postproc.so
+-vendor/lib/libchromatix_ov2680_preview.so
+-vendor/lib/libchromatix_ov2680_snapshot.so
+-vendor/lib/libchromatix_ov2680_zsl_preview.so
+-vendor/lib/libchromatix_ov4688_common.so
+-vendor/lib/libchromatix_ov4688_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov4688_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov4688_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov4688_cpp_liveshot.so
+-vendor/lib/libchromatix_ov4688_cpp_preview.so
+-vendor/lib/libchromatix_ov4688_cpp_snapshot.so
+-vendor/lib/libchromatix_ov4688_cpp_video.so
+-vendor/lib/libchromatix_ov4688_default_video.so
+-vendor/lib/libchromatix_ov4688_hfr_120.so
+-vendor/lib/libchromatix_ov4688_hfr_120_ad5823.so
+-vendor/lib/libchromatix_ov4688_hfr_60.so
+-vendor/lib/libchromatix_ov4688_hfr_60_ad5823.so
+-vendor/lib/libchromatix_ov4688_hfr_90.so
+-vendor/lib/libchromatix_ov4688_hfr_90_ad5823.so
+-vendor/lib/libchromatix_ov4688_postproc.so
+-vendor/lib/libchromatix_ov4688_preview.so
+-vendor/lib/libchromatix_ov4688_snapshot.so
+-vendor/lib/libchromatix_ov4688_zsl_preview_ad5823.so
+-vendor/lib/libchromatix_ov4688_zsl_video_ad5823.so
+-vendor/lib/libchromatix_ov5670_a3_default_preview.so
+-vendor/lib/libchromatix_ov5670_a3_default_video.so
+-vendor/lib/libchromatix_ov5670_a3_hfr_120.so
+-vendor/lib/libchromatix_ov5670_a3_hfr_60.so
+-vendor/lib/libchromatix_ov5670_a3_hfr_90.so
+-vendor/lib/libchromatix_ov5670_common.so
+-vendor/lib/libchromatix_ov5670_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov5670_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov5670_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov5670_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov5670_cpp_liveshot.so
+-vendor/lib/libchromatix_ov5670_cpp_preview.so
+-vendor/lib/libchromatix_ov5670_cpp_snapshot.so
+-vendor/lib/libchromatix_ov5670_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov5670_cpp_video.so
+-vendor/lib/libchromatix_ov5670_cpp_video_full.so
+-vendor/lib/libchromatix_ov5670_default_video.so
+-vendor/lib/libchromatix_ov5670_f5670bq_a3_default_preview.so
+-vendor/lib/libchromatix_ov5670_f5670bq_a3_default_video.so
+-vendor/lib/libchromatix_ov5670_f5670bq_a3_hfr_120.so
+-vendor/lib/libchromatix_ov5670_f5670bq_a3_hfr_60.so
+-vendor/lib/libchromatix_ov5670_f5670bq_a3_hfr_90.so
+-vendor/lib/libchromatix_ov5670_f5670bq_common.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_liveshot.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_preview.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_snapshot.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_video.so
+-vendor/lib/libchromatix_ov5670_f5670bq_cpp_video_full.so
+-vendor/lib/libchromatix_ov5670_f5670bq_default_video.so
+-vendor/lib/libchromatix_ov5670_f5670bq_hfr_120.so
+-vendor/lib/libchromatix_ov5670_f5670bq_hfr_60.so
+-vendor/lib/libchromatix_ov5670_f5670bq_hfr_90.so
+-vendor/lib/libchromatix_ov5670_f5670bq_liveshot.so
+-vendor/lib/libchromatix_ov5670_f5670bq_postproc.so
+-vendor/lib/libchromatix_ov5670_f5670bq_preview.so
+-vendor/lib/libchromatix_ov5670_f5670bq_snapshot.so
+-vendor/lib/libchromatix_ov5670_f5670bq_video_full.so
+-vendor/lib/libchromatix_ov5670_f5670bq_zsl_preview.so
+-vendor/lib/libchromatix_ov5670_f5670bq_zsl_video.so
+-vendor/lib/libchromatix_ov5670_hfr_120.so
+-vendor/lib/libchromatix_ov5670_hfr_60.so
+-vendor/lib/libchromatix_ov5670_hfr_90.so
+-vendor/lib/libchromatix_ov5670_postproc.so
+-vendor/lib/libchromatix_ov5670_preview.so
+-vendor/lib/libchromatix_ov5670_snapshot.so
+-vendor/lib/libchromatix_ov5670_video_full.so
+-vendor/lib/libchromatix_ov5670_zsl_preview.so
+-vendor/lib/libchromatix_ov5670_zsl_video.so
+-vendor/lib/libchromatix_ov5695_a3_default_preview.so
+-vendor/lib/libchromatix_ov5695_a3_default_video.so
+-vendor/lib/libchromatix_ov5695_a3_hfr_120.so
+-vendor/lib/libchromatix_ov5695_a3_hfr_60.so
+-vendor/lib/libchromatix_ov5695_a3_hfr_90.so
+-vendor/lib/libchromatix_ov5695_common.so
+-vendor/lib/libchromatix_ov5695_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov5695_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov5695_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov5695_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov5695_cpp_liveshot.so
+-vendor/lib/libchromatix_ov5695_cpp_preview.so
+-vendor/lib/libchromatix_ov5695_cpp_snapshot.so
+-vendor/lib/libchromatix_ov5695_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov5695_cpp_video.so
+-vendor/lib/libchromatix_ov5695_cpp_video_full.so
+-vendor/lib/libchromatix_ov5695_default_video.so
+-vendor/lib/libchromatix_ov5695_hfr_120.so
+-vendor/lib/libchromatix_ov5695_hfr_60.so
+-vendor/lib/libchromatix_ov5695_hfr_90.so
+-vendor/lib/libchromatix_ov5695_liveshot.so
+-vendor/lib/libchromatix_ov5695_postproc.so
+-vendor/lib/libchromatix_ov5695_preview.so
+-vendor/lib/libchromatix_ov5695_snapshot.so
+-vendor/lib/libchromatix_ov5695_video_full.so
+-vendor/lib/libchromatix_ov5695_zsl_preview.so
+-vendor/lib/libchromatix_ov5695_zsl_video.so
+-vendor/lib/libchromatix_ov7251_cpp_liveshot.so
+-vendor/lib/libchromatix_ov7251_cpp_preview.so
+-vendor/lib/libchromatix_ov7251_cpp_snapshot.so
+-vendor/lib/libchromatix_ov7251_cpp_video.so
+-vendor/lib/libchromatix_ov7251_default_video.so
+-vendor/lib/libchromatix_ov7251_postproc.so
+-vendor/lib/libchromatix_ov7251_preview.so
+-vendor/lib/libchromatix_ov7251_snapshot.so
+-vendor/lib/libchromatix_ov7251_zsl_preview.so
+-vendor/lib/libchromatix_ov7251_zsl_video.so
+-vendor/lib/libchromatix_ov8856_a3_default_preview.so
+-vendor/lib/libchromatix_ov8856_a3_default_video.so
+-vendor/lib/libchromatix_ov8856_a3_hfr_120.so
+-vendor/lib/libchromatix_ov8856_a3_hfr_60.so
+-vendor/lib/libchromatix_ov8856_a3_hfr_90.so
+-vendor/lib/libchromatix_ov8856_common.so
+-vendor/lib/libchromatix_ov8856_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8856_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov8856_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov8856_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov8856_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8856_cpp_preview.so
+-vendor/lib/libchromatix_ov8856_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8856_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8856_cpp_video.so
+-vendor/lib/libchromatix_ov8856_default_video.so
+-vendor/lib/libchromatix_ov8856_hfr_120.so
+-vendor/lib/libchromatix_ov8856_hfr_60.so
+-vendor/lib/libchromatix_ov8856_hfr_90.so
+-vendor/lib/libchromatix_ov8856_liveshot.so
+-vendor/lib/libchromatix_ov8856_postproc.so
+-vendor/lib/libchromatix_ov8856_preview.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_a3_default_video.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_common.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_preview.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_cpp_video.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_default_video.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_postproc.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_preview.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_snapshot.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_zsl_preview.so
+-vendor/lib/libchromatix_ov8856_qtech_atomu_zsl_video.so
+-vendor/lib/libchromatix_ov8856_snapshot.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_a3_default_video.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_common.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_preview.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_cpp_video.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_default_video.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_postproc.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_preview.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_snapshot.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_zsl_preview.so
+-vendor/lib/libchromatix_ov8856_sunny_atomu_zsl_video.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_default_preview_16_9.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_default_video.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_default_video_16_9.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_zsl_preview.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_a3_zsl_video.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_common.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_preview.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_video.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_cpp_video_16_9.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_default_video.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_default_video_16_9.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_liveshot.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_postproc.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_preview.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_preview_16_9.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_snapshot.so
+-vendor/lib/libchromatix_ov8856_sunwin_lnd_snapshot_16_9.so
+-vendor/lib/libchromatix_ov8856_zsl_preview.so
+-vendor/lib/libchromatix_ov8856_zsl_video.so
+-vendor/lib/libchromatix_ov8858_a3_default_preview.so
+-vendor/lib/libchromatix_ov8858_a3_default_video.so
+-vendor/lib/libchromatix_ov8858_a3_hfr_120.so
+-vendor/lib/libchromatix_ov8858_a3_hfr_60.so
+-vendor/lib/libchromatix_ov8858_a3_hfr_90.so
+-vendor/lib/libchromatix_ov8858_common.so
+-vendor/lib/libchromatix_ov8858_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8858_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov8858_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov8858_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov8858_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8858_cpp_preview.so
+-vendor/lib/libchromatix_ov8858_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8858_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8858_cpp_video.so
+-vendor/lib/libchromatix_ov8858_default_video.so
+-vendor/lib/libchromatix_ov8858_hfr_120.so
+-vendor/lib/libchromatix_ov8858_hfr_60.so
+-vendor/lib/libchromatix_ov8858_hfr_90.so
+-vendor/lib/libchromatix_ov8858_postproc.so
+-vendor/lib/libchromatix_ov8858_preview.so
+-vendor/lib/libchromatix_ov8858_snapshot.so
+-vendor/lib/libchromatix_ov8858_zsl_preview.so
+-vendor/lib/libchromatix_ov8858_zsl_video.so
+-vendor/lib/libchromatix_ov8865_common.so
+-vendor/lib/libchromatix_ov8865_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_ov8865_cpp_hfr_120.so
+-vendor/lib/libchromatix_ov8865_cpp_hfr_60.so
+-vendor/lib/libchromatix_ov8865_cpp_hfr_90.so
+-vendor/lib/libchromatix_ov8865_cpp_liveshot.so
+-vendor/lib/libchromatix_ov8865_cpp_preview.so
+-vendor/lib/libchromatix_ov8865_cpp_snapshot.so
+-vendor/lib/libchromatix_ov8865_cpp_us_chromatix.so
+-vendor/lib/libchromatix_ov8865_cpp_video.so
+-vendor/lib/libchromatix_ov8865_cpp_video_full.so
+-vendor/lib/libchromatix_ov8865_default_preview_dw9714.so
+-vendor/lib/libchromatix_ov8865_default_video.so
+-vendor/lib/libchromatix_ov8865_default_video_dw9714.so
+-vendor/lib/libchromatix_ov8865_hfr_120.so
+-vendor/lib/libchromatix_ov8865_hfr_120_dw9714.so
+-vendor/lib/libchromatix_ov8865_hfr_60.so
+-vendor/lib/libchromatix_ov8865_hfr_60_dw9714.so
+-vendor/lib/libchromatix_ov8865_hfr_90.so
+-vendor/lib/libchromatix_ov8865_hfr_90_dw9714.so
+-vendor/lib/libchromatix_ov8865_postproc.so
+-vendor/lib/libchromatix_ov8865_preview.so
+-vendor/lib/libchromatix_ov8865_snapshot.so
+-vendor/lib/libchromatix_ov8865_video_full.so
+-vendor/lib/libchromatix_ov8865_zsl_preview.so
+-vendor/lib/libchromatix_ov8865_zsl_video.so
+-vendor/lib/libchromatix_s5k2l7_4k_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_4k_video_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_4k_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_4k_video_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_common.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_preview.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_video.so
+-vendor/lib/libchromatix_s5k2l7_8953_cpp_video_4k.so
+-vendor/lib/libchromatix_s5k2l7_8953_default_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_default_video_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_120.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_120_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_60.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_60_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_90.so
+-vendor/lib/libchromatix_s5k2l7_8953_hfr_90_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_postproc.so
+-vendor/lib/libchromatix_s5k2l7_8953_preview.so
+-vendor/lib/libchromatix_s5k2l7_8953_snapshot.so
+-vendor/lib/libchromatix_s5k2l7_8953_video_4k.so
+-vendor/lib/libchromatix_s5k2l7_8953_zsl_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_8953_zsl_video_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_common.so
+-vendor/lib/libchromatix_s5k2l7_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k2l7_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k2l7_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k2l7_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k2l7_cpp_preview.so
+-vendor/lib/libchromatix_s5k2l7_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k2l7_cpp_video.so
+-vendor/lib/libchromatix_s5k2l7_cpp_video_4k.so
+-vendor/lib/libchromatix_s5k2l7_default_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_default_video_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_hfr_120.so
+-vendor/lib/libchromatix_s5k2l7_hfr_120_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_hfr_60.so
+-vendor/lib/libchromatix_s5k2l7_hfr_60_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_hfr_90.so
+-vendor/lib/libchromatix_s5k2l7_hfr_90_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_postproc.so
+-vendor/lib/libchromatix_s5k2l7_preview.so
+-vendor/lib/libchromatix_s5k2l7_snapshot.so
+-vendor/lib/libchromatix_s5k2l7_video_4k.so
+-vendor/lib/libchromatix_s5k2l7_zsl_preview_ak7371.so
+-vendor/lib/libchromatix_s5k2l7_zsl_video_ak7371.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_common.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_liveshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_video.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_cpp_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_postproc.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_preview.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_video.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_zsl_preview.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_zsl_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_zsl_video.so
+-vendor/lib/libchromatix_s5k3l6_byd_atomu_zsl_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_common.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_liveshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_video.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_cpp_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_postproc.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_preview.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_video.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_zsl_preview.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_zsl_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_zsl_video.so
+-vendor/lib/libchromatix_s5k3l6_ofilm_lnd_zsl_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_common.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_liveshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_video.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_cpp_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_postproc.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_preview.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_snapshot.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_snapshot_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_video.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_video_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_zsl_preview.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_zsl_preview_8M.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_zsl_video.so
+-vendor/lib/libchromatix_s5k3l6_sunny_atomu_zsl_video_8M.so
+-vendor/lib/libchromatix_s5k3l8_common.so
+-vendor/lib/libchromatix_s5k3l8_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l8_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l8_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_cpp_video.so
+-vendor/lib/libchromatix_s5k3l8_default_preview_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_default_video.so
+-vendor/lib/libchromatix_s5k3l8_default_video_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_common.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_cpp_video.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_default_preview_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_default_video.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_default_video_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_120_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_60_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_hfr_90_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_liveshot.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_postproc.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_preview.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_zsl_preview_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_f3l8yam_zsl_video_dw9763.so
+-vendor/lib/libchromatix_s5k3l8_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_hfr_120_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_hfr_60_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_hfr_90_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_common.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_preview.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_mono_cpp_video.so
+-vendor/lib/libchromatix_s5k3l8_mono_default_preview_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_default_video.so
+-vendor/lib/libchromatix_s5k3l8_mono_default_video_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_120.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_120_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_60.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_60_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_90.so
+-vendor/lib/libchromatix_s5k3l8_mono_hfr_90_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_postproc.so
+-vendor/lib/libchromatix_s5k3l8_mono_preview.so
+-vendor/lib/libchromatix_s5k3l8_mono_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_mono_zsl_preview_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_mono_zsl_video_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_postproc.so
+-vendor/lib/libchromatix_s5k3l8_preview.so
+-vendor/lib/libchromatix_s5k3l8_snapshot.so
+-vendor/lib/libchromatix_s5k3l8_zsl_preview_ak7345.so
+-vendor/lib/libchromatix_s5k3l8_zsl_video_ak7345.so
+-vendor/lib/libchromatix_s5k3m2xm_common.so
+-vendor/lib/libchromatix_s5k3m2xm_common_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_120_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_60_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_hfr_90_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_liveshot_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_preview.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_preview_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_snapshot_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_video.so
+-vendor/lib/libchromatix_s5k3m2xm_cpp_video_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_default_preview_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_default_preview_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_default_video.so
+-vendor/lib/libchromatix_s5k3m2xm_default_video_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_default_video_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_default_video_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_120.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_120_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_120_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_120_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_60.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_60_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_60_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_60_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_90.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_90_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_90_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_hfr_90_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_postproc.so
+-vendor/lib/libchromatix_s5k3m2xm_postproc_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_preview.so
+-vendor/lib/libchromatix_s5k3m2xm_preview_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_snapshot.so
+-vendor/lib/libchromatix_s5k3m2xm_snapshot_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_zsl_preview_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_zsl_preview_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xm_zsl_video_dw9761b.so
+-vendor/lib/libchromatix_s5k3m2xm_zsl_video_dw9761b_bear.so
+-vendor/lib/libchromatix_s5k3m2xx_1080p_preview_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_1080p_video_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_4k_preview_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_4k_video_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_common.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_preview.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_snapshot_downscale.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_snapshot_upscale.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_video.so
+-vendor/lib/libchromatix_s5k3m2xx_cpp_video_4k.so
+-vendor/lib/libchromatix_s5k3m2xx_default_preview_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_default_video.so
+-vendor/lib/libchromatix_s5k3m2xx_default_video_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_120.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_120_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_60.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_60_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_90.so
+-vendor/lib/libchromatix_s5k3m2xx_hfr_90_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_postproc.so
+-vendor/lib/libchromatix_s5k3m2xx_preview.so
+-vendor/lib/libchromatix_s5k3m2xx_snapshot.so
+-vendor/lib/libchromatix_s5k3m2xx_video_4k.so
+-vendor/lib/libchromatix_s5k3m2xx_zsl_preview_ad5816g.so
+-vendor/lib/libchromatix_s5k3m2xx_zsl_video_ad5816g.so
+-vendor/lib/libchromatix_s5k3p3sm_common.so
+-vendor/lib/libchromatix_s5k3p3sm_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3p3sm_cpp_preview.so
+-vendor/lib/libchromatix_s5k3p3sm_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3p3sm_cpp_video.so
+-vendor/lib/libchromatix_s5k3p3sm_default_preview_3a.so
+-vendor/lib/libchromatix_s5k3p3sm_default_video.so
+-vendor/lib/libchromatix_s5k3p3sm_default_video_3a.so
+-vendor/lib/libchromatix_s5k3p3sm_fullsize_preview_3a.so
+-vendor/lib/libchromatix_s5k3p3sm_fullsize_video_3a.so
+-vendor/lib/libchromatix_s5k3p3sm_postproc.so
+-vendor/lib/libchromatix_s5k3p3sm_preview.so
+-vendor/lib/libchromatix_s5k3p3sm_snapshot.so
+-vendor/lib/libchromatix_s5k3p8sp_a3_default_preview.so
+-vendor/lib/libchromatix_s5k3p8sp_a3_default_video.so
+-vendor/lib/libchromatix_s5k3p8sp_a3_zsl_preview.so
+-vendor/lib/libchromatix_s5k3p8sp_a3_zsl_video.so
+-vendor/lib/libchromatix_s5k3p8sp_common.so
+-vendor/lib/libchromatix_s5k3p8sp_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k3p8sp_cpp_preview.so
+-vendor/lib/libchromatix_s5k3p8sp_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k3p8sp_cpp_video.so
+-vendor/lib/libchromatix_s5k3p8sp_postproc.so
+-vendor/lib/libchromatix_s5k3p8sp_preview.so
+-vendor/lib/libchromatix_s5k3p8sp_snapshot.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_a3_default_preview.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_a3_default_video.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_a3_hfr_120.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_a3_hfr_60.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_a3_hfr_90.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_common.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_preview.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_us_chromatix.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_cpp_video.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_default_video.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_hfr_120.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_hfr_60.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_hfr_90.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_liveshot.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_postproc.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_preview.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_snapshot.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_zsl_preview_3a.so
+-vendor/lib/libchromatix_s5k4h7_kingcome_mcw_zsl_video_3a.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_a3_default_video.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_a3_hfr_120.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_a3_hfr_60.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_a3_hfr_90.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_common.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_hfr_120.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_hfr_60.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_hfr_90.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_preview.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_cpp_video.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_default_video.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_hfr_120.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_hfr_60.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_hfr_90.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_liveshot.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_postproc.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_preview.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_snapshot.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_zsl_preview.so
+-vendor/lib/libchromatix_s5k5e8_brod_atomu_zsl_video.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_common.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_cpp_ds_chromatix.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_cpp_hfr_120.so
+@@ -4968,51 +3391,6 @@ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_preview.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_snapshot.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_zsl_preview_3a.so
+ vendor/lib/libchromatix_s5k5e8_holitech_8579m_pad_zsl_video_3a.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_a3_default_preview.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_a3_default_video.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_common.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_liveshot.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_preview.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_snapshot.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_us_chromatix.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_cpp_video.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_default_video.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_postproc.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_preview.so
+-vendor/lib/libchromatix_sp2509_brodsands_atomu_snapshot.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_a3_default_video.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_common.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_preview.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_cpp_video.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_default_video.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_liveshot.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_postproc.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_preview.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_snapshot.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_video_full.so
+-vendor/lib/libchromatix_sp2509v_altek_lnd_zsl_preview.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_a3_default_video.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_common.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_preview.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_cpp_video.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_default_video.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_liveshot.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_postproc.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_preview.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_snapshot.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_video_full.so
+-vendor/lib/libchromatix_sp2509v_byd_lnd_zsl_preview.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_common.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_cpp_ds_chromatix.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_cpp_liveshot.so
+@@ -5028,38 +3406,6 @@ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_preview_isp.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_snapshot_isp.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_video_full.so
+ vendor/lib/libchromatix_sp2509v_holitech_sp2565m_pad_zsl_preview.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_a3_default_preview.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_a3_default_video.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_common.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_liveshot.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_preview.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_snapshot.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_us_chromatix.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_cpp_video.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_default_video.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_liveshot.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_postproc.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_preview.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_snapshot.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_video_full.so
+-vendor/lib/libchromatix_sp2509_byd_8526m_pad_zsl_preview.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_a3_default_preview.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_a3_default_video.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_common.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_ds_chromatix.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_liveshot.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_preview.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_snapshot.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_us_chromatix.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_cpp_video.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_default_video.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_liveshot.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_postproc.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_preview.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_snapshot.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_video_full.so
+-vendor/lib/libchromatix_sp2509v_ofilm_lnd_zsl_preview.so
+ vendor/lib/libchrome.so
+ vendor/lib/libcne.so
+ vendor/lib/libcneapiclient.so
+@@ -5078,11 +3424,7 @@ vendor/lib/libdisp-aba.so
+ vendor/lib/libdisplay_ext.so
+ vendor/lib/libdng_sdk.so
+ vendor/lib/libDocBeauty.so
+-vendor/lib/libdpmctmgr.so
+-vendor/lib/libdpmfdmgr.so
+ vendor/lib/libdpmframework.so
+-vendor/lib/libdpmnsrm.so
+-vendor/lib/libdpmtcm.so
+ vendor/lib/libdrc.so
+ vendor/lib/libdrmfs.so
+ vendor/lib/libdrmtime.so
+@@ -5101,15 +3443,12 @@ vendor/lib/libextmedia_jni.so
+ vendor/lib/libFaceBeautyMeiwo.so
+ vendor/lib/libFaceBeautyMeiwoJNI.so
+ vendor/lib/libFaceDetection.so
+-vendor/lib/libfaclog.so
+ vendor/lib/libfastcvadsp_stub.so
+ vendor/lib/libfastcvopt.so
+ vendor/lib/libfastrpc_aue_stub.so
+ vendor/lib/libfastrpc_utf_stub.so
+-vendor/lib/libfidoca.so
+ vendor/lib/libFidoCrypto.so
+ vendor/lib/libFidoCryptoJNI.so
+-vendor/lib/libFIDOKeyProvisioning.so
+ vendor/lib/libFidoSuiJNI.so
+ vendor/lib/libFileMux.so
+ vendor/lib/libFlacSwDec.so
+@@ -5125,7 +3464,6 @@ vendor/lib/libgnsspps.so
+ vendor/lib/libGPreqcancel.so
+ vendor/lib/libGPreqcancel_svc.so
+ vendor/lib/libgps.utils.so
+-vendor/lib/libGPTEE.so
+ vendor/lib/libgralloc_ext.so
+ vendor/lib/libgsl.so
+ vendor/lib/libhardware.so
+@@ -5133,27 +3471,19 @@ vendor/lib/libhardware_legacy.so
+ vendor/lib/libhbtpclient.so
+ vendor/lib/libhbtpdsp.so
+ vendor/lib/libhbtpfrmwk.so
+-vendor/lib/libhbtpjni.so
+ vendor/lib/libhdr.so
+-vendor/lib/libhibermanager.so
+ vendor/lib/libhme_jpeg_dec.so
+ vendor/lib/libhuaweicust.so
+-vendor/lib/libhuawei_i2c_test.so
+ vendor/lib/libhuawei_secure.so
+-vendor/lib/libhuawei_sensor_test.so
+ vendor/lib/libhwlog.so
+ vendor/lib/libhwnv.so
+ vendor/lib/libHW_BShutter.so
+ vendor/lib/libhw_display_effect.so
+-vendor/lib/libhw_display_test.so
+ vendor/lib/libhw_hal.so
+-vendor/lib/libhw_tp_pressure_calibration.so
+ vendor/lib/libI420colorconvert.so
+-vendor/lib/libiawared.so
+ vendor/lib/libidl.so
+ vendor/lib/libimedia_filters.so
+ vendor/lib/libimonitor.so
+-vendor/lib/libimsmedia_jni.so
+ vendor/lib/libinotifytools.so
+ vendor/lib/libion.so
+ vendor/lib/libizat_client_api.so
+@@ -5200,11 +3530,9 @@ vendor/lib/libmemunreachable.so
+ vendor/lib/libminijail.so
+ vendor/lib/libminui.so
+ vendor/lib/libmm-color-convertor.so
+-vendor/lib/libmm-disp-apis.so
+ vendor/lib/libmm-hdcpmgr.so
+ vendor/lib/libmm-omxcore.so
+ vendor/lib/libmm-qcamera.so
+-vendor/lib/libmm-qdcm.so
+ vendor/lib/libmmcamera2_c2d_module.so
+ vendor/lib/libmmcamera2_cpp_module.so
+ vendor/lib/libmmcamera2_dcrf.so
+@@ -5221,51 +3549,22 @@ vendor/lib/libmmcamera2_q3a_core.so
+ vendor/lib/libmmcamera2_sensor_modules.so
+ vendor/lib/libmmcamera2_stats_algorithm.so
+ vendor/lib/libmmcamera2_stats_modules.so
+-vendor/lib/libmmcamera_ace24c32pcd_eeprom.so
+-vendor/lib/libmmcamera_atmel_at24c32e_eeprom.so
+ vendor/lib/libmmcamera_chromaflash_lib.so
+-vendor/lib/libmmcamera_csidtg.so
+ vendor/lib/libmmcamera_dbg.so
+ vendor/lib/libmmcamera_dcrf_lib.so
+ vendor/lib/libmmcamera_dummyalgo.so
+-vendor/lib/libmmcamera_dw9761b_2d_eeprom.so
+ vendor/lib/libmmcamera_eebinparse.so
+ vendor/lib/libmmcamera_eeprom_util.so
+ vendor/lib/libmmcamera_eztune_module.so
+ vendor/lib/libmmcamera_facedetection_lib.so
+ vendor/lib/libmmcamera_faceproc.so
+ vendor/lib/libmmcamera_faceproc2.so
+-vendor/lib/libmmcamera_gc2375_altek_eeprom.so
+-vendor/lib/libmmcamera_gc2375_eeprom.so
+ vendor/lib/libmmcamera_gc2375h_kingcome_g7p2_pad.so
+-vendor/lib/libmmcamera_gc5025_blx_eeprom.so
+-vendor/lib/libmmcamera_gc5025h_blx_eeprom.so
+ vendor/lib/libmmcamera_gc5035_kingcome_g9m5_pad.so
+ vendor/lib/libmmcamera_gc5035_kingcome_g9m5_pad_eeprom.so
+-vendor/lib/libmmcamera_gc8034_byd_eeprom.so
+-vendor/lib/libmmcamera_gc8034_hlt_lnd_eeprom.so
+-vendor/lib/libmmcamera_gc8034_wingshing_eeprom.so
+ vendor/lib/libmmcamera_hdr_gb_lib.so
+-vendor/lib/libmmcamera_hi1333_eeprom.so
+-vendor/lib/libmmcamera_hi1333_ofilm_eeprom.so
+-vendor/lib/libmmcamera_hi1333_qtech_eeprom.so
+-vendor/lib/libmmcamera_hi553_qtech_zh553ab_pad.so
+-vendor/lib/libmmcamera_hi556_byd_eeprom.so
+-vendor/lib/libmmcamera_hi556_hlt_eeprom.so
+-vendor/lib/libmmcamera_hi556_kingcome_eeprom.so
+-vendor/lib/libmmcamera_hi846_byd_eeprom.so
+-vendor/lib/libmmcamera_hi846_eeprom.so
+-vendor/lib/libmmcamera_hi846_hlt_eeprom.so
+-vendor/lib/libmmcamera_hi846_jsl_eeprom.so
+ vendor/lib/libmmcamera_imglib.so
+ vendor/lib/libmmcamera_imx214.so
+-vendor/lib/libmmcamera_imx230.so
+-vendor/lib/libmmcamera_imx258.so
+-vendor/lib/libmmcamera_imx258_gt24c16_eeprom.so
+-vendor/lib/libmmcamera_imx258_gt24c32_eeprom.so
+-vendor/lib/libmmcamera_imx258_mono.so
+-vendor/lib/libmmcamera_imx258_mono_gt24c32_eeprom.so
+-vendor/lib/libmmcamera_imx298.so
+ vendor/lib/libmmcamera_imx318.so
+ vendor/lib/libmmcamera_imx362.so
+ vendor/lib/libmmcamera_imx378.so
+@@ -5304,88 +3603,41 @@ vendor/lib/libmmcamera_isp_sce40.so
+ vendor/lib/libmmcamera_isp_sub_module.so
+ vendor/lib/libmmcamera_isp_template.so
+ vendor/lib/libmmcamera_isp_wb40.so
+-vendor/lib/libmmcamera_le2464c_eeprom.so
+-vendor/lib/libmmcamera_le2464c_master_eeprom.so
+ vendor/lib/libmmcamera_llvd.so
+-vendor/lib/libmmcamera_onsemi_cat24c16_eeprom.so
+-vendor/lib/libmmcamera_onsemi_cat24c32_eeprom.so
+-vendor/lib/libmmcamera_onsemi_cat24c32_imx362_eeprom.so
+ vendor/lib/libmmcamera_optizoom_lib.so
+-vendor/lib/libmmcamera_ov13850.so
+ vendor/lib/libmmcamera_ov13850_q13v06k.so
+-vendor/lib/libmmcamera_ov13855_eeprom.so
+ vendor/lib/libmmcamera_ov13855_f13855ae.so
+-vendor/lib/libmmcamera_ov13855_ofilm_eeprom.so
+-vendor/lib/libmmcamera_ov13855_sunny_eeprom.so
+ vendor/lib/libmmcamera_ov2281.so
+-vendor/lib/libmmcamera_ov2680.so
+-vendor/lib/libmmcamera_ov2685.so
+ vendor/lib/libmmcamera_ov2685_scv3b4035.so
+ vendor/lib/libmmcamera_ov4688.so
+-vendor/lib/libmmcamera_ov4688_eeprom.so
+ vendor/lib/libmmcamera_ov5645.so
+-vendor/lib/libmmcamera_ov5670.so
+-vendor/lib/libmmcamera_ov5695.so
+ vendor/lib/libmmcamera_ov7251.so
+ vendor/lib/libmmcamera_ov8856.so
+-vendor/lib/libmmcamera_ov8856_qtech_eeprom.so
+-vendor/lib/libmmcamera_ov8856_sunny_eeprom.so
+-vendor/lib/libmmcamera_ov8856_sunwin_lnd.so
+-vendor/lib/libmmcamera_ov8856_sunwin_lnd_eeprom.so
+-vendor/lib/libmmcamera_ov8858.so
+-vendor/lib/libmmcamera_ov8865.so
+ vendor/lib/libmmcamera_paaf_lib.so
+ vendor/lib/libmmcamera_pdaf.so
+ vendor/lib/libmmcamera_pdafcamif.so
+ vendor/lib/libmmcamera_ppbase_module.so
+-vendor/lib/libmmcamera_qtech_f3l8yam_eeprom.so
+-vendor/lib/libmmcamera_qtech_f5670bq_eeprom.so
+ vendor/lib/libmmcamera_quadracfa.so
+-vendor/lib/libmmcamera_rohm_brcg064gwz_3_eeprom.so
+ vendor/lib/libmmcamera_s5k2l7.so
+-vendor/lib/libmmcamera_s5k3l6_ofilm_eeprom.so
+-vendor/lib/libmmcamera_s5k3l6_sunny_eeprom.so
+-vendor/lib/libmmcamera_s5k3l8.so
+ vendor/lib/libmmcamera_s5k3l8_mono.so
+-vendor/lib/libmmcamera_s5k3m2xm.so
+ vendor/lib/libmmcamera_s5k3m2xx.so
+ vendor/lib/libmmcamera_s5k3p3sm.so
+ vendor/lib/libmmcamera_s5k3p8sp.so
+-vendor/lib/libmmcamera_s5k4h7_kingcome_mcw_eeprom.so
+-vendor/lib/libmmcamera_s5k5e8_brodsands_eeprom.so
+ vendor/lib/libmmcamera_s5k5e8_holitech_8579m_pad.so
+-vendor/lib/libmmcamera_sony_imx378_eeprom.so
+-vendor/lib/libmmcamera_sonyimx135_eeprom.so
+-vendor/lib/libmmcamera_sony_imx214_eeprom.so
+-vendor/lib/libmmcamera_sony_imx298_eeprom.so
+-vendor/lib/libmmcamera_sp2509_eeprom.so
+ vendor/lib/libmmcamera_sp2509v_byd_lnd.so
+ vendor/lib/libmmcamera_sp2509v_holitech_sp2565m_pad.so
+-vendor/lib/libmmcamera_sp2509_byd_8526m_pad.so
+ vendor/lib/libmmcamera_stillmore_lib.so
+-vendor/lib/libmmcamera_sunny_8865_eeprom.so
+-vendor/lib/libmmcamera_sunny_gt24c64_imx298_eeprom.so
+-vendor/lib/libmmcamera_sunny_gt24c64_s5k2l7_eeprom.so
+-vendor/lib/libmmcamera_sunny_gt24c64a_imx362_eeprom.so
+-vendor/lib/libmmcamera_sunny_q13v06k_eeprom.so
+-vendor/lib/libmmcamera_sunny_q5v41b_eeprom.so
+ vendor/lib/libmmcamera_sw2d_lib.so
+ vendor/lib/libmmcamera_thread_services.so
+ vendor/lib/libmmcamera_tintless_algo.so
+ vendor/lib/libmmcamera_tintless_bg_pca_algo.so
+ vendor/lib/libmmcamera_trueportrait_lib.so
+-vendor/lib/libmmcamera_truly_cma481_eeprom.so
+-vendor/lib/libmmcamera_truly_cmb433_eeprom.so
+ vendor/lib/libmmcamera_tuning.so
+ vendor/lib/libmmcamera_tuning_lookup.so
+ vendor/lib/libmmcamera_ubifocus_lib.so
+-vendor/lib/libmmcamera_ygn_gt24c64a_eeprom.so
+-vendor/lib/libmmcamera_ygn_hi556_eeprom.so
+-vendor/lib/libmmcamera_ygn_ov5675_eeprom.so
+ vendor/lib/libmmhttpstack.so
+ vendor/lib/libmmi.so
+ vendor/lib/libmmiipstreammmihttp.so
+-vendor/lib/libmmipstreamaal.so
+ vendor/lib/libmmipstreamnetwork.so
+ vendor/lib/libmmipstreamsourcehttp.so
+ vendor/lib/libmmipstreamutils.so
+@@ -5456,8 +3708,6 @@ vendor/lib/libprotobuf-cpp-full.so
+ vendor/lib/libpvr.so
+ vendor/lib/libqcci_legacy.so
+ vendor/lib/libqcmaputils.so
+-vendor/lib/libqcombtaging.so
+-vendor/lib/libqcombtstopaging.so
+ vendor/lib/libqct_resampler.so
+ vendor/lib/libqdi.so
+ vendor/lib/libqdMetaData.so
+@@ -5481,13 +3731,9 @@ vendor/lib/libqomx_jpegenc_pipe.so
+ vendor/lib/libQPayJNI.so
+ vendor/lib/libQSEEComAPI.so
+ vendor/lib/libqservice.so
+-vendor/lib/libqti-at.so
+-vendor/lib/libqti-gt.so
+ vendor/lib/libqti-iop-client.so
+ vendor/lib/libqti-iop.so
+ vendor/lib/libqti-perfd-client.so
+-vendor/lib/libqti-wl.so
+-vendor/lib/libQtiTether.so
+ vendor/lib/libqti_performance.so
+ vendor/lib/libquipc_os_api.so
+ vendor/lib/libradio_metadata.so
+@@ -5511,8 +3757,6 @@ vendor/lib/libRSDriver_adreno.so
+ vendor/lib/librs_adreno.so
+ vendor/lib/librs_adreno_sha1.so
+ vendor/lib/libSamMotionReco.so
+-vendor/lib/libSampleAuthJNI.so
+-vendor/lib/libSampleExtAuthJNI.so
+ vendor/lib/libsc-a2xx.so
+ vendor/lib/libsc-a3xx.so
+ vendor/lib/libscalar.so
+@@ -5546,21 +3790,12 @@ vendor/lib/libsdm-disp-apis.so
+ vendor/lib/libsdmcore.so
+ vendor/lib/libsdmextension.so
+ vendor/lib/libsdmutils.so
+-vendor/lib/libsd_sdk_display.so
+-vendor/lib/libSecureExtAuthJNI.so
+-vendor/lib/libSecureSampleAuthJNI.so
+ vendor/lib/libsecureui.so
+-vendor/lib/libSecureUILib.so
+-vendor/lib/libsecureuisvc_jni.so
+ vendor/lib/libsecureui_svcsock.so
+-vendor/lib/libsecure_boot.so
+-vendor/lib/libsecure_boot_keybox.so
+ vendor/lib/libseemore.so
+ vendor/lib/libselinux.so
+ vendor/lib/libsensor1.so
+ vendor/lib/libsensor_reg.so
+-vendor/lib/libsensor_test.so
+-vendor/lib/libsensor_thresh.so
+ vendor/lib/libsettings.so
+ vendor/lib/libSHAdapter.msm8937.so
+ vendor/lib/libsi.so
+@@ -5585,33 +3820,23 @@ vendor/lib/libsuspend.so
+ vendor/lib/libswvdec.so
+ vendor/lib/libsync.so
+ vendor/lib/libsystem_health_mon.so
+-vendor/lib/libsysupdateauth_fwk.so
+ vendor/lib/libsysutils.so
+ vendor/lib/libtar.so
+-vendor/lib/libtcis_ca.so
+-vendor/lib/libteec.so
+-vendor/lib/libteeclientjni.so
+ vendor/lib/libthermalclient.so
+-vendor/lib/libthpinterface.so
+ vendor/lib/libTimeService.so
+ -vendor/lib/libtime_genoff.so
+ vendor/lib/libtinyalsa.so
+ vendor/lib/libtinycompress.so
+ vendor/lib/libtinyxml.so
+-vendor/lib/libtp_calibration_test.so
+-vendor/lib/libtp_capacitance_test.so
+ vendor/lib/libtrack.so
+ vendor/lib/libtrueportrait.so
+-vendor/lib/libtrustzone_key_manager.so
+ -vendor/lib/libts_detected_face_hal.so
+ -vendor/lib/libts_face_beautify_hal.so
+-vendor/lib/libtzdrmgenprov.so
+ vendor/lib/libubifocus.so
+ vendor/lib/libulp2.so
+ vendor/lib/libusbhost.so
+ vendor/lib/libUserAgent.so
+ vendor/lib/libutils.so
+-vendor/lib/libvendorconn.so
+ vendor/lib/libvoice-svc.so
+ vendor/lib/libvpplibrary.so
+ vendor/lib/libvqzip.so
+@@ -5622,7 +3847,6 @@ vendor/lib/libwfdhdcpcp.so
+ vendor/lib/libwfdmmservice.so
+ vendor/lib/libwfdmmsink.so
+ vendor/lib/libwfdmmsrc.so
+-vendor/lib/libwfdnative.so
+ vendor/lib/libwfdrtsp.so
+ vendor/lib/libwfdservice.so
+ vendor/lib/libwfdsm.so
+@@ -5633,7 +3857,6 @@ vendor/lib/libwfduibcsrc.so
+ vendor/lib/libwfduibcsrcinterface.so
+ vendor/lib/libwifi-hal-qcom.so
+ vendor/lib/libwifi_ext.default.so
+-vendor/lib/libwifi_maxpwr_tx.so
+ vendor/lib/libwifi_sar.so
+ vendor/lib/libwms.so
+ vendor/lib/libwpa_client.so
+@@ -5645,19 +3868,13 @@ vendor/lib/libxtwifi_ulp_adaptor.so
+ vendor/lib/libxt_native.so
+ vendor/lib/lib_device_interface.so
+ vendor/lib/lib_drplugin_server.so
+-vendor/lib/lib_factory_interface.so
+ vendor/lib/lib_fpc_tac_shared.so
+-vendor/lib/lib_nve_operation.so
+-vendor/lib/lib_oeminfo_interface.so
+-vendor/lib/lib_remote_simlock.so
+ vendor/lib/lib_vibrator.so
+-vendor/lib/lib_wifi_sar.so
+ vendor/lib/mediadrm/libwvdrmengine.so
+ vendor/lib/mmi_audio.so
+ vendor/lib/mmi_battery.so
+ vendor/lib/mmi_bluetooth.so
+ vendor/lib/mmi_cpu.so
+-vendor/lib/mmi_flashlight.so
+ vendor/lib/mmi_fm.so
+ vendor/lib/mmi_gps.so
+ vendor/lib/mmi_headset.so
+@@ -5669,19 +3886,9 @@ vendor/lib/mmi_nfc.so
+ vendor/lib/mmi_sensor.so
+ vendor/lib/mmi_sim.so
+ vendor/lib/mmi_storage.so
+-vendor/lib/mmi_sysinfo.so
+ vendor/lib/mmi_touch.so
+ vendor/lib/mmi_vibrator.so
+ vendor/lib/mmi_wifi.so
+-vendor/lib/modules/ansi_cprng.ko
+-vendor/lib/modules/backlight.ko
+-vendor/lib/modules/br_netfilter.ko
+-vendor/lib/modules/evbug.ko
+-vendor/lib/modules/generic_bl.ko
+-vendor/lib/modules/lcd.ko
+-vendor/lib/modules/rdbg.ko
+-vendor/lib/modules/spidev.ko
+-vendor/lib/modules/wil6210.ko
+ vendor/lib/qcdrm/playready/lib/drm/libdrmprplugin_customer.so
+ vendor/lib/qcdrm/playready/lib/libprdrmdecrypt_customer.so
+ vendor/lib/qcdrm/playready/lib/libtzplayready_customer.so
+@@ -5710,7 +3917,6 @@ vendor/lib/soundfx/libqcreverb.so
+ vendor/lib/soundfx/libqcvirt.so
+ vendor/lib/vendor.huawei.hardware.camera.camResource@1.0.so
+ vendor/lib/vendor.huawei.hardware.camera.camResource@1.1.so
+-vendor/lib/vendor.huawei.hardware.camera.cfgsvr@1.0.so
+ vendor/lib/vendor.huawei.hardware.camera.factory@1.0.so
+ vendor/lib64/egl/eglsubAndroid.so
+ vendor/lib64/egl/eglSubDriverAndroid.so
+@@ -5760,16 +3966,10 @@ vendor/lib64/lib-dplmedia.so
+ vendor/lib64/lib-ims-rcscmjni.so
+ vendor/lib64/lib-imsdpl.so
+ vendor/lib64/lib-imsqimf.so
+-vendor/lib64/lib-imsrcs.so
+-vendor/lib64/lib-imsrcscm.so
+ vendor/lib64/lib-imsrcscmclient.so
+-vendor/lib64/lib-imsrcscmservice.so
+ vendor/lib64/lib-imss.so
+-vendor/lib64/lib-imsSDP.so
+-vendor/lib64/lib-imsvt.so
+ vendor/lib64/lib-imsxml.so
+ vendor/lib64/lib-rcsimssjni.so
+-vendor/lib64/lib-rcsjni.so
+ vendor/lib64/lib-rtpcommon.so
+ vendor/lib64/lib-rtpcore.so
+ vendor/lib64/lib-rtpdaemoninterface.so
+@@ -5786,7 +3986,6 @@ vendor/lib64/libadsp_default_listener.so
+ vendor/lib64/libAlacSwDec.so
+ vendor/lib64/libalarmservice_jni.so
+ vendor/lib64/libalsautils.so
+-vendor/lib64/libAntiTheftService.so
+ vendor/lib64/libantradio.so
+ vendor/lib64/libApeSwDec.so
+ vendor/lib64/libasd.so
+@@ -5799,18 +3998,13 @@ vendor/lib64/libaudiodevarb.so
+ vendor/lib64/libaudioparsers.so
+ vendor/lib64/libaudioroute.so
+ vendor/lib64/libaudiospdif.so
+-vendor/lib64/libaudiotestalgo.so
+ vendor/lib64/libaudioutils.so
+-vendor/lib64/libavenhancements.so
+ vendor/lib64/libbacktrace.so
+ vendor/lib64/libbase.so
+ vendor/lib64/libbccQTI.so
+-vendor/lib64/libbigdatamng.so
+ vendor/lib64/libbinderwrapper.so
+-vendor/lib64/libBootloaderOeminfo.so
+ vendor/lib64/libbt-vendor.so
+ vendor/lib64/libbtaddr.so
+-vendor/lib64/libbtcheck.so
+ vendor/lib64/libbtinfo.so
+ vendor/lib64/libbtnv.so
+ vendor/lib64/libbtpower.so
+@@ -5825,13 +4019,11 @@ vendor/lib64/libcalmodule_common.so
+ vendor/lib64/libcamera_metadata.so
+ vendor/lib64/libcap.so
+ vendor/lib64/libCB.so
+-vendor/lib64/libChamomilePA.so
+ vendor/lib64/libchrome.so
+ vendor/lib64/libcne.so
+ vendor/lib64/libcneapiclient.so
+ vendor/lib64/libcneqmiutils.so
+ vendor/lib64/libCommandSvc.so
+-vendor/lib64/libcommunication_api.so
+ vendor/lib64/libconfigdb.so
+ vendor/lib64/libconnctrl.so
+ vendor/lib64/libcryptfs_hw.so
+@@ -5847,11 +4039,7 @@ vendor/lib64/libdiskconfig.so
+ vendor/lib64/libdisp-aba.so
+ vendor/lib64/libdisplay_ext.so
+ vendor/lib64/libdng_sdk.so
+-vendor/lib64/libdpmctmgr.so
+-vendor/lib64/libdpmfdmgr.so
+ vendor/lib64/libdpmframework.so
+-vendor/lib64/libdpmnsrm.so
+-vendor/lib64/libdpmtcm.so
+ vendor/lib64/libdrmfs.so
+ vendor/lib64/libdrmtime.so
+ vendor/lib64/libDRPlugin.so
+@@ -5898,15 +4086,12 @@ vendor/lib64/libextmedia_jni.so
+ vendor/lib64/libf2fs_sparseblock.so
+ vendor/lib64/libFaceBeautyMeiwo.so
+ vendor/lib64/libFaceBeautyMeiwoJNI.so
+-vendor/lib64/libfaclog.so
+ vendor/lib64/libfastcvadsp_stub.so
+ vendor/lib64/libfastcvopt.so
+ vendor/lib64/libfastrpc_aue_stub.so
+ vendor/lib64/libfastrpc_utf_stub.so
+-vendor/lib64/libfidoca.so
+ vendor/lib64/libFidoCrypto.so
+ vendor/lib64/libFidoCryptoJNI.so
+-vendor/lib64/libFIDOKeyProvisioning.so
+ vendor/lib64/libFidoSuiJNI.so
+ vendor/lib64/libFileMux.so
+ vendor/lib64/libFlacSwDec.so
+@@ -5918,7 +4103,6 @@ vendor/lib64/libgnsspps.so
+ vendor/lib64/libGPreqcancel.so
+ vendor/lib64/libGPreqcancel_svc.so
+ vendor/lib64/libgps.utils.so
+-vendor/lib64/libGPTEE.so
+ vendor/lib64/libgralloc_ext.so
+ vendor/lib64/libgsl.so
+ vendor/lib64/libhardware.so
+@@ -5926,38 +4110,20 @@ vendor/lib64/libhardware_legacy.so
+ vendor/lib64/libhbtpclient.so
+ vendor/lib64/libhbtpdsp.so
+ vendor/lib64/libhbtpfrmwk.so
+-vendor/lib64/libhbtpjni.so
+ vendor/lib64/libhdr.so
+-vendor/lib64/libhibermanager.so
+ vendor/lib64/libhme_jpeg_dec.so
+ vendor/lib64/libhuaweicust.so
+-vendor/lib64/libhuawei_i2c_test.so
+ vendor/lib64/libhuawei_secure.so
+-vendor/lib64/libhuawei_sensor_test.so
+ vendor/lib64/libhwlog.so
+ vendor/lib64/libhwnv.so
+-vendor/lib64/libhw_diag_audio.so
+-vendor/lib64/libhw_diag_charging.so
+-vendor/lib64/libhw_diag_common.so
+-vendor/lib64/libhw_diag_fac.so
+-vendor/lib64/libhw_diag_os.so
+-vendor/lib64/libhw_diag_peripheral.so
+-vendor/lib64/libhw_diag_protocol.so
+-vendor/lib64/libhw_diag_sec.so
+-vendor/lib64/libhw_diag_wireless.so
+ vendor/lib64/libhw_display_effect.so
+-vendor/lib64/libhw_display_test.so
+ vendor/lib64/libhw_hal.so
+-vendor/lib64/libhw_tp_pressure_calibration.so
+ vendor/lib64/libI420colorconvert.so
+-vendor/lib64/libiawared.so
+ vendor/lib64/libidl.so
+ vendor/lib64/libimedia_filters.so
+ vendor/lib64/libimonitor.so
+-vendor/lib64/libimsmedia_jni.so
+ vendor/lib64/libinotifytools.so
+ vendor/lib64/libion.so
+-vendor/lib64/libipanat.so
+ vendor/lib64/libizat_client_api.so
+ vendor/lib64/libizat_core.so
+ vendor/lib64/libjson.so
+@@ -5999,10 +4165,8 @@ vendor/lib64/libmemunreachable.so
+ vendor/lib64/libminijail.so
+ vendor/lib64/libminui.so
+ vendor/lib64/libmm-color-convertor.so
+-vendor/lib64/libmm-disp-apis.so
+ vendor/lib64/libmm-hdcpmgr.so
+ vendor/lib64/libmm-omxcore.so
+-vendor/lib64/libmm-qdcm.so
+ vendor/lib64/libmmcamera2_frame_algorithm.so
+ vendor/lib64/libmmcamera2_is.so
+ vendor/lib64/libmmcamera2_q3a_core.so
+@@ -6013,7 +4177,6 @@ vendor/lib64/libmmcamera_tintless_bg_pca_algo.so
+ vendor/lib64/libmmhttpstack.so
+ vendor/lib64/libmmi.so
+ vendor/lib64/libmmiipstreammmihttp.so
+-vendor/lib64/libmmipstreamaal.so
+ vendor/lib64/libmmipstreamnetwork.so
+ vendor/lib64/libmmipstreamsourcehttp.so
+ vendor/lib64/libmmipstreamutils.so
+@@ -6033,11 +4196,9 @@ vendor/lib64/libnativebridge.so
+ vendor/lib64/libnativeloader.so
+ vendor/lib64/libnetdaidl.so
+ vendor/lib64/libnetd_client.so
+-vendor/lib64/libnetfilter_conntrack.so
+ vendor/lib64/libnetmgr.so
+ vendor/lib64/libnetutils.so
+ vendor/lib64/libnfc_manufacture.so
+-vendor/lib64/libnfnetlink.so
+ vendor/lib64/libnvme.so
+ vendor/lib64/liboeminfo.so
+ vendor/lib64/libOmxAacDec.so
+@@ -6097,13 +4258,9 @@ vendor/lib64/libQPayJNI.so
+ vendor/lib64/libqsap_sdk.so
+ vendor/lib64/libQSEEComAPI.so
+ vendor/lib64/libqservice.so
+-vendor/lib64/libqti-at.so
+-vendor/lib64/libqti-gt.so
+ vendor/lib64/libqti-iop-client.so
+ vendor/lib64/libqti-iop.so
+ vendor/lib64/libqti-perfd-client.so
+-vendor/lib64/libqti-wl.so
+-vendor/lib64/libQtiTether.so
+ vendor/lib64/libqti_performance.so
+ vendor/lib64/libquipc_os_api.so
+ vendor/lib64/libradio_metadata.so
+@@ -6125,8 +4282,6 @@ vendor/lib64/libRSDriver_adreno.so
+ vendor/lib64/librs_adreno.so
+ vendor/lib64/librs_adreno_sha1.so
+ vendor/lib64/libSamMotionReco.so
+-vendor/lib64/libSampleAuthJNI.so
+-vendor/lib64/libSampleExtAuthJNI.so
+ vendor/lib64/libsc-a2xx.so
+ vendor/lib64/libsc-a3xx.so
+ vendor/lib64/libscalar.so
+@@ -6159,21 +4314,12 @@ vendor/lib64/libsdm-disp-apis.so
+ vendor/lib64/libsdmcore.so
+ vendor/lib64/libsdmextension.so
+ vendor/lib64/libsdmutils.so
+-vendor/lib64/libsd_sdk_display.so
+-vendor/lib64/libSecureExtAuthJNI.so
+-vendor/lib64/libSecureSampleAuthJNI.so
+ vendor/lib64/libsecureui.so
+-vendor/lib64/libSecureUILib.so
+-vendor/lib64/libsecureuisvc_jni.so
+ vendor/lib64/libsecureui_svcsock.so
+-vendor/lib64/libsecure_boot.so
+-vendor/lib64/libsecure_boot_keybox.so
+ vendor/lib64/libselinux.so
+ vendor/lib64/libsensor1.so
+ vendor/lib64/libsensors.huawei.so
+ vendor/lib64/libsensor_reg.so
+-vendor/lib64/libsensor_test.so
+-vendor/lib64/libsensor_thresh.so
+ vendor/lib64/libsettings.so
+ vendor/lib64/libSHAdapter.msm8937.so
+ vendor/lib64/libsi.so
+@@ -6194,30 +4340,20 @@ vendor/lib64/libsuspend.so
+ vendor/lib64/libswvdec.so
+ vendor/lib64/libsync.so
+ vendor/lib64/libsystem_health_mon.so
+-vendor/lib64/libsysupdateauth_fwk.so
+ vendor/lib64/libsysutils.so
+-vendor/lib64/libtcis_ca.so
+-vendor/lib64/libteec.so
+-vendor/lib64/libteeclientjni.so
+ vendor/lib64/libthermalclient.so
+ vendor/lib64/libthermalioctl.so
+-vendor/lib64/libthpinterface.so
+ vendor/lib64/libTimeService.so
+ vendor/lib64/libtime_genoff.so
+ vendor/lib64/libtinyalsa.so
+ vendor/lib64/libtinycompress.so
+ vendor/lib64/libtinyxml.so
+-vendor/lib64/libtp_calibration_test.so
+-vendor/lib64/libtp_capacitance_test.so
+-vendor/lib64/libtrustzone_key_manager.so
+ vendor/lib64/libts_detected_face_hal.so
+ vendor/lib64/libts_face_beautify_hal.so
+-vendor/lib64/libtzdrmgenprov.so
+ vendor/lib64/libulp2.so
+ vendor/lib64/libusbhost.so
+ vendor/lib64/libUserAgent.so
+ vendor/lib64/libutils.so
+-vendor/lib64/libvendorconn.so
+ vendor/lib64/libvoice-svc.so
+ vendor/lib64/libvpplibrary.so
+ vendor/lib64/libwbc_jni.so
+@@ -6227,7 +4363,6 @@ vendor/lib64/libwfdhdcpcp.so
+ vendor/lib64/libwfdmmservice.so
+ vendor/lib64/libwfdmmsink.so
+ vendor/lib64/libwfdmmsrc.so
+-vendor/lib64/libwfdnative.so
+ vendor/lib64/libwfdrtsp.so
+ vendor/lib64/libwfdservice.so
+ vendor/lib64/libwfdsm.so
+@@ -6238,7 +4373,6 @@ vendor/lib64/libwfduibcsrc.so
+ vendor/lib64/libwfduibcsrcinterface.so
+ vendor/lib64/libwifi-hal-qcom.so
+ vendor/lib64/libwifi_ext.default.so
+-vendor/lib64/libwifi_maxpwr_tx.so
+ vendor/lib64/libwifi_sar.so
+ vendor/lib64/libwms.so
+ vendor/lib64/libwpa_client.so
+@@ -6250,19 +4384,12 @@ vendor/lib64/libxtwifi_ulp_adaptor.so
+ vendor/lib64/libxt_native.so
+ vendor/lib64/lib_device_interface.so
+ vendor/lib64/lib_drplugin_server.so
+-vendor/lib64/lib_factory_interface.so
+ vendor/lib64/lib_fpc_tac_shared.so
+-vendor/lib64/lib_mmi_interface.so
+-vendor/lib64/lib_nve_operation.so
+-vendor/lib64/lib_oeminfo_interface.so
+-vendor/lib64/lib_remote_simlock.so
+ vendor/lib64/lib_vibrator.so
+-vendor/lib64/lib_wifi_sar.so
+ vendor/lib64/mmi_audio.so
+ vendor/lib64/mmi_battery.so
+ vendor/lib64/mmi_bluetooth.so
+ vendor/lib64/mmi_cpu.so
+-vendor/lib64/mmi_flashlight.so
+ vendor/lib64/mmi_fm.so
+ vendor/lib64/mmi_gps.so
+ vendor/lib64/mmi_headset.so
+@@ -6274,7 +4401,6 @@ vendor/lib64/mmi_nfc.so
+ vendor/lib64/mmi_sensor.so
+ vendor/lib64/mmi_sim.so
+ vendor/lib64/mmi_storage.so
+-vendor/lib64/mmi_sysinfo.so
+ vendor/lib64/mmi_touch.so
+ vendor/lib64/mmi_vibrator.so
+ vendor/lib64/mmi_wifi.so
+@@ -6289,7 +4415,6 @@ vendor/lib64/soundfx/libqcreverb.so
+ vendor/lib64/soundfx/libqcvirt.so
+ vendor/lib64/vendor.huawei.hardware.camera.camResource@1.0.so
+ vendor/lib64/vendor.huawei.hardware.camera.camResource@1.1.so
+-vendor/lib64/vendor.huawei.hardware.camera.cfgsvr@1.0.so
+ vendor/lib64/vendor.huawei.hardware.camera.factory@1.0.so
+ vendor/qcril.db
+ vendor/usr/idc/fingerprint.idc
+-- 
+2.53.0
+

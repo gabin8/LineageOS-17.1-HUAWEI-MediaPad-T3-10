@@ -162,6 +162,8 @@ The device keeps the 15.1 v2 vendor partition; two scripts adapt it, each step d
   `libnativeloader` shadows Android 10's APEX copy (no zygote), Oreo-built HIDL wrappers do not link,
   configstore's Oreo seccomp policy kills it (system_server hang at screen-off); it also installs
   the patched Android 10 power HAL under the 15.1 binary name.
+- [`vendor/blob-audit.md`](vendor/blob-audit.md) — what on `/vendor` is used, what was parked
+  (`vendor/park-unused-blobs.txt`, stage A2 item 19) and what is kept although unused, with notes.
 - [`scripts/vendor-abi-audit.py`](scripts/vendor-abi-audit.py) finds such breaks offline (legacy
   linker order: `/system`, then `/vendor`, then the APEX link);
   [`scripts/verify-system-img.sh`](scripts/verify-system-img.sh) checks the root directory inside
@@ -175,7 +177,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 |---|---|
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
-| 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); 75 non-boot blobs left |
+| 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); full audit in [`vendor/blob-audit.md`](vendor/blob-audit.md): 1,913 unused files parked (124 MB, stage A2 item 19, device 0034), the rest annotated |
 | 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); GPS: outdoor fix in 89 s from a cold start, GPS + GLONASS + BeiDou, 4.6 m, position confirmed in a map app (0033 + kernel patch 13; no raw GNSS measurements, as on stock) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |

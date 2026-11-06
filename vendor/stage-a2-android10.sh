@@ -74,6 +74,11 @@
 #     keeps IGnssXtra and Android downloads XTRA (servers: frameworks/location-gps-debug-xtra-
 #     servers.patch). The modem's own refresh request still ends in that client: Android downloads
 #     XTRA at every boot and on demand.
+# 19. Park what nothing on this tablet uses (vendor/park-unused-blobs.txt, 1,913 files, 124 MB; see
+#     vendor/blob-audit.md): other Huawei devices' camera sensor/tuning/actuator/EEPROM libraries,
+#     mobile network/IMS/RCS and data-path code, factory and MMI test code, clients of unused
+#     TrustZone apps, stock-kernel modules, libraries that cannot link on Android 10. Moved to
+#     /vendor/stage-a-parked/ like the other parked files, so it is undone by moving them back.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -201,6 +206,9 @@ done
 rm -f "$S/lbs.so"
 adb shell rm -rf /tmp/a2files
 adb push "$S" /tmp/a2files >/dev/null
+PL=$(mktemp)    # item 19 (not in $S: everything in $S is installed on /vendor)
+grep -v '^#' "$(dirname "$0")/park-unused-blobs.txt" > "$PL"
+adb push "$PL" /tmp/a2park.txt >/dev/null; rm -f "$PL"
 adb shell sh -s <<'EOF'
 set -e
 cd /tmp/a2files
@@ -239,6 +247,10 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
+while read -r f; do    # item 19
+    [ -n "$f" ] && [ -e "/vendor/$f" ] || continue
+    mkdir -p "/vendor/stage-a-parked/${f%/*}"; mv "/vendor/$f" "/vendor/stage-a-parked/$f"
+done < /tmp/a2park.txt
 mkdir -p /vendor/etc/init-disabled
 W=/vendor/etc/init/android.hardware.wifi@1.0-service.rc   # Q HAL sets wlan0 up itself
 grep -q '^    capabilities NET_ADMIN' $W || sed -i 's/^    class hal$/    class hal\n    capabilities NET_ADMIN NET_RAW SYS_MODULE/' $W
@@ -257,5 +269,5 @@ P=/vendor/default.prop
 grep -q '^persist.sys.usb.config=adb' $P || printf '%s\n' \
     '# stage A2 bring-up: adb on at boot without authorization (remove before release)' \
     'persist.sys.usb.config=adb' 'ro.adb.secure=0' >> $P
-sync; umount /vendor; rm -rf /tmp/a2files
+sync; umount /vendor; rm -rf /tmp/a2files /tmp/a2park.txt
 EOF
