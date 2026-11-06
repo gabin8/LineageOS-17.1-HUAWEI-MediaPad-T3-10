@@ -79,6 +79,19 @@
 #     mobile network/IMS/RCS and data-path code, factory and MMI test code, clients of unused
 #     TrustZone apps, stock-kernel modules, libraries that cannot link on Android 10. Moved to
 #     /vendor/stage-a-parked/ like the other parked files, so it is undone by moving them back.
+# 20. Widevine (L3, as on stock: neither stock image has Qualcomm's liboemcrypto.so). The vendor
+#     manifest declares a "widevine" DRM HAL instance that this vendor never had (stock's
+#     drm@1.0-service.widevine does not link on Android 10): Android 10's DRM framework waits for
+#     every declared instance, so every MediaDrm call hung. Drop those two lines; Widevine then runs
+#     in the default drm@1.0-service as a legacy plugin. The engine the 15.1 vendor carried
+#     (CDM v4.0.0, 2016) and stock EMUI 8's (v5.0.0, 2017) both link libprotobuf-cpp-lite.so, which
+#     Android 10's no longer satisfies (8 and 16 missing symbols). Use stock's engine with that
+#     dependency renamed to libprotobuf-cpp-oreo.so (same length, a byte patch), an Android 8.1
+#     libprotobuf-cpp-lite.so (LineageOS 15.1 build) with the same SONAME. Inputs, both optional:
+#       WV_ENGINE=<stock EMUI 8 vendor lib/mediadrm/libwvdrmengine.so> (sha256 dab79e12...)
+#       PROTOBUF_O=<LineageOS 15.1 system lib/libprotobuf-cpp-lite.so> (sha256 86a5b18c...)
+#     The DRM HAL's access to /data/mediadrm comes with stage A's policy (device series 0036), and
+#     the WebView needs frameworks/av-drm-legacy-factory-security-level.patch.
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -156,14 +169,17 @@ rm -f "$S/apc.xml"
 adb pull /vendor/manifest.xml "$S/vm.xml" >/dev/null
 python3 - "$S/vm.xml" "$S/manifest.xml" <<'EOF'
 import re, sys
-s = open(sys.argv[1]).read()
-if 'android.hardware.wifi.hostapd' not in s:
-    m = re.search(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.wifi.supplicant</name>.*?</hal>\n', s, re.S)
+s = s2 = open(sys.argv[1]).read()
+if 'android.hardware.wifi.hostapd' not in s2:
+    m = re.search(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.wifi.supplicant</name>.*?</hal>\n', s2, re.S)
     blk = ('    <hal format="hidl">\n        <name>android.hardware.wifi.hostapd</name>\n'
            '        <transport>hwbinder</transport>\n        <version>1.1</version>\n'
            '        <interface>\n            <name>IHostapd</name>\n'
            '            <instance>default</instance>\n        </interface>\n    </hal>\n')
-    open(sys.argv[2], 'w').write(s[:m.end()] + blk + s[m.end():])
+    s2 = s2[:m.end()] + blk + s2[m.end():]
+s2 = re.sub(r'\n[ \t]*<instance>widevine</instance>', '', s2)   # item 20
+if s2 != s:
+    open(sys.argv[2], 'w').write(s2)
 EOF
 rm -f "$S/vm.xml"
 # camera.msm8937.so (32-bit, Huawei Oreo HAL): its static copy of qdutils' sendSingleParam() puts two
@@ -204,6 +220,34 @@ open(sys.argv[2], 'wb').write(d)
 EOF
 done
 rm -f "$S/lbs.so"
+# Widevine (item 20): stock's engine and an Android 8.1 protobuf, both renamed to
+# libprotobuf-cpp-oreo.so (NEEDED in the engine, SONAME in the library; only in .dynstr).
+if [ -n "${WV_ENGINE:-}" ] && [ -n "${PROTOBUF_O:-}" ]; then
+    mkdir -p "$S/lib/mediadrm"
+    for x in "$WV_ENGINE:$S/lib/mediadrm/libwvdrmengine.so:dab79e12b26ebb37" \
+             "$PROTOBUF_O:$S/lib/libprotobuf-cpp-oreo.so:86a5b18cf0778037"; do
+        python3 - "${x%%:*}" "$(echo "$x" | cut -d: -f2)" "${x##*:}" <<'EOF'
+import hashlib, struct, sys
+b = bytearray(open(sys.argv[1], 'rb').read())
+assert hashlib.sha256(b).hexdigest().startswith(sys.argv[3]), 'unknown ' + sys.argv[1]
+old, new = b'libprotobuf-cpp-lite.so', b'libprotobuf-cpp-oreo.so'
+shoff, = struct.unpack_from('<I', b, 0x20); shentsize, shnum, shstrndx = struct.unpack_from('<HHH', b, 0x2e)
+sec = lambda i: struct.unpack_from('<IIIIII', b, shoff + i * shentsize)
+stroff = sec(shstrndx)[4]
+hits = 0
+for i in range(shnum):
+    name, _, _, _, off, size = sec(i)
+    if bytes(b[stroff + name:stroff + name + 8]) == b'.dynstr\0':
+        j = bytes(b[off:off + size]).find(b'\0' + old + b'\0')
+        assert j >= 0 and bytes(b[off:off + size]).count(b'\0' + old + b'\0') == 1
+        b[off + j + 1:off + j + 1 + len(old)] = new; hits += 1
+assert hits == 1
+open(sys.argv[2], 'wb').write(b)
+EOF
+    done
+else
+    echo "item 20: WV_ENGINE/PROTOBUF_O not set, Widevine engine left as it is" >&2
+fi
 adb shell rm -rf /tmp/a2files
 adb push "$S" /tmp/a2files >/dev/null
 PL=$(mktemp)    # item 19 (not in $S: everything in $S is installed on /vendor)

@@ -90,6 +90,19 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   (system image). Android downloads XTRA at every boot once Wi-Fi is up, and on demand; the
   modem's own refresh request still goes to the unused client, so after about a week without a
   reboot the data expires until the next boot.
+  Widevine (protected video) is software L3, as on stock: neither the stock EMUI 8 nor the
+  original Android 7 vendor image has Qualcomm's `liboemcrypto.so`, the bridge to the hardware
+  level. Before stage A2 item 20 it did not work at all, for three reasons. The vendor manifest
+  declared a "widevine" DRM service this vendor never had, and Android 10 waits for every
+  declared instance, so any app touching DRM hung. Both Widevine engines on hand were built
+  against Android 8's protobuf. And the DRM HAL was not allowed into `/data/mediadrm`, where
+  pre-Treble Widevine keeps its files (stock's policy allowed it; device 0036). Item 20 drops the
+  declaration and installs stock EMUI 8's engine (CDM 5.0.0, 2017) on an Android 8.1 protobuf
+  under its own name. Checked end to end in a WebView: provisioning with Google's server, a
+  licence from the Shaka demo's proxy, and the encrypted "Angel One" stream (VP9 + AAC) playing.
+  Two limits: L3 streaming apps usually cap at SD, and LineageOS 17.1's browser (Jelly) never
+  answers the WebView's protected-media permission request, so web pages cannot use Widevine
+  there (an app that grants it, as Chrome does, works).
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
@@ -156,6 +169,10 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     reroutes all of them), so the idle primary output stayed on the speaker, and Huawei's audio HAL
     takes the device of its VoIP path from that output while no VoIP playback is open. The
     primary output is now rerouted too: calls record from the headset microphone in every phase.
+  - `av-drm-legacy-factory-security-level.patch` — Android 10 only answers "is this DRM scheme
+    supported at security level X?" for DRM HALs 1.2 and newer; for this vendor's 1.0 HAL it threw,
+    and the WebView, which always asks with a level, treated Widevine as missing (Shaka error
+    6001). It now answers like a software (L3) plugin does through 1.2: the software levels only.
 - **Vendor:** first the proven 15.1 v2 vendor image unchanged; later a vendor rebuilt reproducibly
   from the stock EMUI 8 (Oreo) image with the 15.1 vendor fixes folded in at build time.
 - **Boot:** same as 15.1 — signed image, **RAM-booted with `fastboot boot` only**.
@@ -186,7 +203,7 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); full audit in [`vendor/blob-audit.md`](vendor/blob-audit.md): 1,913 unused files parked (124 MB, stage A2 item 19, device 0034), the rest annotated |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); Bluetooth call audio (SCO, as calling apps use it): headset speaker and microphone in both directions, call volume from the tablet keys (policy patch above; the tested headset supports only narrowband HFP 1.5); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); GPS: outdoor fix in 89 s from a cold start, GPS + GLONASS + BeiDou, 4.6 m, position confirmed in a map app (0033 + kernel patch 13; no raw GNSS measurements, as on stock) |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); Bluetooth call audio (SCO, as calling apps use it): headset speaker and microphone in both directions, call volume from the tablet keys (policy patch above; the tested headset supports only narrowband HFP 1.5); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); Widevine L3 protected video (stage A2 item 20 + device 0036 + the av patch; checked with a Widevine-encrypted stream in a WebView); GPS: outdoor fix in 89 s from a cold start, GPS + GLONASS + BeiDou, 4.6 m, position confirmed in a map app (0033 + kernel patch 13; no raw GNSS measurements, as on stock) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials; Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
 | 5. Reproducible vendor + release | — |
 

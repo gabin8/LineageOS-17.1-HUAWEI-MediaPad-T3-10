@@ -1,0 +1,42 @@
+From 08b39a3347f27424a6c1a037dcfc530db45b1e08 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 18:07:50 +0200
+Subject: [PATCH] libmediadrm: answer security-level queries for pre-1.2 DRM
+ factories
+
+isCryptoSchemeSupported(uuid, mime, level) failed with ERROR_UNSUPPORTED
+for a 1.0/1.1 IDrmFactory (an upgrading device's vendor DRM HAL with
+legacy plugins), and MediaDrm threw UnsupportedOperationException. The
+WebView's EME asks every container with a security level, so it
+treated Widevine as unavailable (Shaka error 6001). Answer like a
+software (L3-style) plugin does through 1.2: the software levels only,
+for the content types the factory supports.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Change-Id: I83f12dfac95c4ffbb866e05e6f60aab149612fff
+---
+ drm/libmediadrm/DrmHal.cpp | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drm/libmediadrm/DrmHal.cpp b/drm/libmediadrm/DrmHal.cpp
+index 919f4ee..d121fac 100644
+--- a/drm/libmediadrm/DrmHal.cpp
++++ b/drm/libmediadrm/DrmHal.cpp
+@@ -623,7 +623,13 @@ status_t DrmHal::matchMimeTypeAndSecurityLevel(const sp<IDrmFactory> &factory,
+ 
+     sp<drm::V1_2::IDrmFactory> factoryV1_2 = drm::V1_2::IDrmFactory::castFrom(factory);
+     if (factoryV1_2 == NULL) {
+-        return ERROR_UNSUPPORTED;
++        // A 1.0/1.1 factory (an upgrading device's vendor DRM HAL with legacy plugins) cannot be
++        // asked about security levels. Failing the query made apps that always pass a level (the
++        // WebView's EME) treat the scheme as unavailable. Answer like a software (L3-style)
++        // plugin does through 1.2: the software levels only.
++        *isSupported = level <= DrmPlugin::kSecurityLevelSwSecureDecode &&
++                factory->isContentTypeSupported(mimeType.string());
++        return OK;
+     } else {
+         *isSupported = factoryV1_2->isCryptoSchemeSupported_1_2(uuid,
+                 mimeType.string(), toHidlSecurityLevel(level));
+-- 
+2.53.0
+

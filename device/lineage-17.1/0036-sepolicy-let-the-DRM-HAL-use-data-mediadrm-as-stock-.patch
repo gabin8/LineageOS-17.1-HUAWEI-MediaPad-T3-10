@@ -1,0 +1,33 @@
+From e7071547b478c70eb6ee0bdafaffb03df8735c7e Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 18:07:50 +0200
+Subject: [PATCH] sepolicy: let the DRM HAL use /data/mediadrm, as stock EMUI
+ did
+
+Huawei's Widevine engine (a legacy plugin of android.hardware.drm@1.0-
+service) keeps its files in /data/mediadrm/IDM<uid>/ like every
+pre-Treble Widevine build; stock EMUI 8's vendor policy allowed hal_drm
+there. Without it the engine could not initialise (OEMCrypto_Initialize
+failed, every session "General DRM error").
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ sepolicy/hal_drm_default.te | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 sepolicy/hal_drm_default.te
+
+diff --git a/sepolicy/hal_drm_default.te b/sepolicy/hal_drm_default.te
+new file mode 100644
+index 0000000..1a3609a
+--- /dev/null
++++ b/sepolicy/hal_drm_default.te
+@@ -0,0 +1,6 @@
++# Widevine: Huawei's engine (stock EMUI 8, a legacy plugin in /vendor/lib/mediadrm loaded by
++# android.hardware.drm@1.0-service) keeps its files in /data/mediadrm/IDM<uid>/, like every
++# pre-Treble Widevine build. Stock EMUI's vendor policy allowed the DRM HAL there (hal_drm,
++# media_data_file); without it the engine cannot initialise and every session fails.
++allow hal_drm_default media_data_file:dir create_dir_perms;
++allow hal_drm_default media_data_file:file create_file_perms;
+-- 
+2.53.0
+

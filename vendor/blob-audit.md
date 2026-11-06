@@ -56,7 +56,7 @@ costly and the gain small.
 | Camera features | 79 | 30.7 MB | Qualcomm computer vision (`libscve*`), Huawei algorithms (`libmrc_cg_*`, beauty, best shot, HDR helpers, scene detection), flash and OIS drivers, `mm-qcamera-app`. Snap does not use them; Huawei's camera app did. Candidates after a camera feature test. |
 | Graphics | 6 | 28.8 MB | `libllvm-qgl` (Adreno LLVM compiler), `libsc-a2xx` (Adreno 2xx compiler), `libc2d30-a5xx` (Adreno 5xx C2D): not this GPU (Adreno 308), but graphics failures are severe. |
 | Casting / streaming | 43 | 5.1 MB | Qualcomm Wi-Fi Display (Miracast) stack and RTP/HTTP streaming. Several cannot link on Android 10; decide after the screen casting test. |
-| Plugin directories | 20 | 5.4 MB | Loaded by scanning their directory, not by name: `mediadrm/`, `mediacas/`, `qcdrm/` (Widevine, PlayReady, ClearKey CAS; several cannot link: protected video may not play) and `rfsa/adsp/` (code for the audio DSP, loaded by the DSP). |
+| Plugin directories | 20 | 5.4 MB | Loaded by scanning their directory, not by name: `mediadrm/`, `mediacas/`, `qcdrm/` (Widevine, PlayReady, ClearKey CAS; PlayReady and the CAS plugin cannot link; Widevine works since stage A2 item 20, see the README) and `rfsa/adsp/` (code for the audio DSP, loaded by the DSP). |
 | Audio extras | 21 | 2.7 MB | Voice wake-up (`liblisten*`), `audiod`, ALSA/device-arbitration helpers. |
 | Debugging tools | 27 | 2.2 MB | `diag_*` loggers, `iw`, `iperf`, `athdiag`, `inotifywait`, ramdump tools. |
 | Location extras | 8 | 0.5 MB | Wi-Fi positioning client libraries (`libxt*`, `libizat_client_api`); their daemons are not started. |
