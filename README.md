@@ -103,6 +103,14 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   Two limits: L3 streaming apps usually cap at SD, and LineageOS 17.1's browser (Jelly) never
   answers the WebView's protected-media permission request, so web pages cannot use Widevine
   there (an app that grants it, as Chrome does, works).
+  0037 (stage A2 item 21) starts `qseecomd`, Qualcomm's helper for TrustZone apps: they cannot
+  reach storage themselves, and it serves their requests for the eMMC's replay-protected block
+  (RPMB), the `ssd` partition, `/persist`, time and interrupts. Stock started it from
+  `init.target.rc`, which this port does not import, so it never ran on 17.1. Nothing here uses a
+  TrustZone app yet (keystore and gatekeeper run in software, as on 15.1; Widevine is L3), but it
+  is the prerequisite for any of them. With it running, the keymaster TrustZone app proved to be
+  loaded (QSEE app id 4), contrary to the 15.1 note that this unit's TrustZone lacks it: a
+  hardware-backed keystore may be possible (not tried; user data is not encrypted on this port).
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2

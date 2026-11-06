@@ -34,3 +34,4 @@
 0034-proprietary-files-drop-1-875-blobs-nothing-on-this-t.patch
 0035-tools-gnss_probe-a-bench-test-for-the-GNSS-HAL.patch
 0036-sepolicy-let-the-DRM-HAL-use-data-mediadrm-as-stock-.patch
+0037-tee-start-qseecomd-Qualcomm-s-listener-daemon-for-Tr.patch

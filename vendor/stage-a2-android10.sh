@@ -92,6 +92,11 @@
 #       PROTOBUF_O=<LineageOS 15.1 system lib/libprotobuf-cpp-lite.so> (sha256 86a5b18c...)
 #     The DRM HAL's access to /data/mediadrm comes with stage A's policy (device series 0036), and
 #     the WebView needs frameworks/av-drm-legacy-factory-security-level.patch.
+# 21. qseecomd, Qualcomm's listener daemon for TrustZone apps (storage on the eMMC's RPMB, the ssd
+#     partition and /persist, time, interrupts): stock started it from init.target.rc, which this
+#     port does not import, so it never ran on 17.1. init.ags_w09.tee.rc starts it (device series
+#     0037, with the property labels for its Oreo-named sys.listeners.registered and
+#     sys.keymaster.loaded; those come with stage A's policy).
 #  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
 #     Remove these two lines from /vendor/default.prop before any release.
@@ -120,6 +125,7 @@ mkdir -p "$S/etc/permissions"   # item 16
 cp "$ROOT/device/huawei/ags_w09/configs/sensors/ags_w09_unavailable_sensors.xml" "$S/etc/permissions/"
 mkdir -p "$S/bin"; cp "$OUT/bin/ags_modem_holder" "$S/bin/"   # item 17
 cp "$OUT/etc/init/init.ags_w09.modem.rc" "$S/etc/init/"
+cp "$OUT/etc/init/init.ags_w09.tee.rc" "$S/etc/init/"   # item 21
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
     adb shell test -x /sbin/recovery || { echo "not in the 15.1 recovery" >&2; exit 1; }
