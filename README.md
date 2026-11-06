@@ -109,8 +109,13 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   `init.target.rc`, which this port does not import, so it never ran on 17.1. Nothing here uses a
   TrustZone app yet (keystore and gatekeeper run in software, as on 15.1; Widevine is L3), but it
   is the prerequisite for any of them. With it running, the keymaster TrustZone app proved to be
-  loaded (QSEE app id 4), contrary to the 15.1 note that this unit's TrustZone lacks it: a
-  hardware-backed keystore may be possible (not tried; user data is not encrypted on this port).
+  loaded (QSEE app id 4), contrary to the 15.1 note that this unit's TrustZone lacks it. Tested
+  in isolation (Huawei's `keystore.msm8937.so` and `gatekeeper.msm8937.so`, set aside since 15.1,
+  loaded directly): EC P-256 and RSA 2048 keys generated in TrustZone with 9 and 11 of their rules
+  hardware-enforced, sign/verify OK; a PIN enrolled and verified, a wrong one rejected. The
+  keymaster app asks qseecomd's time listener while it works. Not enabled yet: Android still uses
+  the software keystore and gatekeeper (switching invalidates keys stored so far; user data is
+  not encrypted on this port).
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
