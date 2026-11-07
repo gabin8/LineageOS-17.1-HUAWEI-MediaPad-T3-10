@@ -40,3 +40,4 @@
 0040-sepolicy-keep-vold-s-fstrim-out-of-persist-quietly.patch
 0041-crypto-software-full-disk-encryption-for-the-opt-in-.patch
 0042-init-tell-vold-when-post-fs-data-is-done.patch
+0043-fstab-declare-misc-for-the-bootloader-control-block.patch
