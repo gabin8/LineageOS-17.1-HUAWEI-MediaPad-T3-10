@@ -21,4 +21,6 @@ conntrack-sip-segment-list-init.patch # 12. init the vendor SIP list in __nf_con
                                 #     (CT-target templates oopsed in destroy_conntrack: kernel panic)
 modem-board-info-smem-vendor2.patch # 13. modem id + product in SMEM_ID_VENDOR2, as Huawei's aboot
                                 #     does (the modem ran without its board config: no GPS)
+parade-empty-buffer-log.patch   # 14. touch: the empty buffer read after each ESD watchdog ping is
+                                #     normal PIP; log it at debug level (was an error once a second)
 # Build: scripts/build-kernel.sh <lineage tree> <out dir>

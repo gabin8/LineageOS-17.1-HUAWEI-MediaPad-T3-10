@@ -1,0 +1,42 @@
+From 18e0331690654f2323d94fb7a0f6e0c8c00d3a93 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 00:55:09 +0200
+Subject: [PATCH] input: tpkit/parade: an empty input buffer is not an error
+
+With the screen on, ts_kit's ESD watchdog sends the touch IC a PIP NULL
+command every second. The level-low interrupt is unmasked right after
+the response is read while the IC is still releasing INT, so it fires
+once more and that read finds the 2-byte empty buffer. Huawei's driver
+logged this normal PIP condition at error level, filling the kernel log
+with "parade_read_input: input_buf is empty" once a second. Log it at
+ts_kit's debug level, as Parade's reference driver treats it; the read
+is still skipped as before. Stock configures the same watchdog and IRQ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ drivers/devkit/tpkit/panel/parade/parade.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/devkit/tpkit/panel/parade/parade.c b/drivers/devkit/tpkit/panel/parade/parade.c
+index 39ecccc6..14d50ea8 100644
+--- a/drivers/devkit/tpkit/panel/parade/parade.c
++++ b/drivers/devkit/tpkit/panel/parade/parade.c
+@@ -5850,8 +5850,12 @@ if (rc < 0) {
+ 		return 0;
+ 	if (size == 2 || size > CY_MAX_INPUT){
+ 		/* Before PIP 1.7, empty buffer is 0x0002;
+-		From PIP 1.7, empty buffer is 0xFFXX */
+-		TS_LOG_ERR("%s: input_buf is empty, inval size=%d\n",__func__,size);
++		From PIP 1.7, empty buffer is 0xFFXX.
++		An empty buffer is normal: the level-low interrupt is unmasked right
++		after a response is read, while the IC is still releasing INT, so every
++		ESD watchdog ping (once a second with the screen on) is followed by one
++		empty read. Log it at debug level, as Parade's reference driver does. */
++		TS_LOG_DEBUG("%s: input_buf is empty, size=%d\n",__func__,size);
+ 		return -EINVAL;
+ 	}
+ 	rc = cd->parade_chip_data->ts_platform_data->bops->bus_read(&reg_addr, sizeof(reg_addr), cd->input_buf, size);
+-- 
+2.53.0
+
