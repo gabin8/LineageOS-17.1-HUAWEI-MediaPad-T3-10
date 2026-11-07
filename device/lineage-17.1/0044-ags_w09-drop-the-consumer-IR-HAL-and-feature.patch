@@ -1,0 +1,53 @@
+From 47721781c68c6c87111817e16d78e6960f998f61 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 13:44:07 +0200
+Subject: [PATCH] ags_w09: drop the consumer IR HAL and feature
+
+The AGS-W09 has no IR blaster and stock EMUI declares none; the
+consumerir.mk from the tree's first template shipped the IR HAL, its
+service and android.hardware.consumerir, so apps offered IR remotes.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ manifest.xml          | 9 ---------
+ product/consumerir.mk | 8 --------
+ 2 files changed, 17 deletions(-)
+ delete mode 100644 product/consumerir.mk
+
+diff --git a/manifest.xml b/manifest.xml
+index a0ddfb0..767fb4d 100644
+--- a/manifest.xml
++++ b/manifest.xml
+@@ -124,15 +124,6 @@ included.
+             <instance>default</instance>
+         </interface>
+     </hal>
+-    <hal format="hidl">
+-        <name>android.hardware.ir</name>
+-        <transport>hwbinder</transport>
+-        <version>1.0</version>
+-        <interface>
+-            <name>IConsumerIr</name>
+-            <instance>default</instance>
+-        </interface>
+-    </hal>
+     <hal format="hidl">
+         <name>android.hardware.keymaster</name>
+         <transport>hwbinder</transport>
+diff --git a/product/consumerir.mk b/product/consumerir.mk
+deleted file mode 100644
+index 4a0aba9..0000000
+--- a/product/consumerir.mk
++++ /dev/null
+@@ -1,8 +0,0 @@
+-# Consumerir HIDL
+-PRODUCT_PACKAGES += \
+-    android.hardware.ir@1.0-impl \
+-    android.hardware.ir@1.0-service
+-
+-# Permissions
+-PRODUCT_COPY_FILES += \
+-    frameworks/native/data/etc/android.hardware.consumerir.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.consumerir.xml
+-- 
+2.53.0
+

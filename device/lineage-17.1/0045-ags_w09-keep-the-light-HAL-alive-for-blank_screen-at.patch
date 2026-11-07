@@ -1,0 +1,35 @@
+From c0c1fa71774e6230d1ac795366c8bf7d08de1014 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 13:44:07 +0200
+Subject: [PATCH] ags_w09: keep the light HAL alive for blank_screen at
+ shutdown
+
+Init starts blank_screen (shutdown critical) at every shutdown and
+reboot, then terminates the non-critical services. The light HAL died
+under blank_screen's setLight() calls and blank_screen aborted with
+DEAD_OBJECT (9 tombstones since 2026-11-04). Mark the HAL shutdown
+critical, as AOSP's own light rc does.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ rootdir/init.qcom.rc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index 4e5e710..dd60dcf 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -26,6 +26,10 @@ service light-hal-2-0 /vendor/bin/hw/android.hardware.light@2.0-service
+     class hal
+     user system
+     group system
++    # Init starts blank_screen (shutdown critical) at every shutdown/reboot, then terminates the
++    # non-critical services; without this the HAL died under blank_screen's setLight() calls and
++    # blank_screen aborted (DEAD_OBJECT tombstone). AOSP's own light rc has the same line.
++    shutdown critical
+ 
+ service wifi-bringup /system/bin/sh /init.wifi.sh
+     class late_start
+-- 
+2.53.0
+

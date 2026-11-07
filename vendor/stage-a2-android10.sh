@@ -106,9 +106,15 @@
 # 23. Android 10's handheld_core_hardware.xml (the build's; the vendor kept Android 8's). Android
 #     8's lacks android.software.secure_lock_screen, so Android 10 offered no PIN, pattern or
 #     password lock at all; it also adds android.software.cant_save_state.
-#  6. BRING-UP ONLY: adb on at boot without authorization (LineageOS 17.1 userdebug ships
-#     persist.sys.usb.config=none and /data is fresh). Vendor props override prop.default on Q.
-#     Remove these two lines from /vendor/default.prop before any release.
+# 24. No IR blaster: the AGS-W09 has none and stock EMUI declares none, but the 15.1 device tree
+#     (from its first template) shipped the consumer IR HAL, its service and the
+#     android.hardware.consumerir feature, so apps offered IR remote functions. Park the feature
+#     file, the service, its rc and the HAL modules, and drop android.hardware.ir from the manifest
+#     (device series 0044 removes them from the build).
+#  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
+#     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
+#     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
+#     the bring-up ro.adb.secure=0 that earlier runs of this script added.
 set -euo pipefail
 ROOT=$(realpath "${1:?lineage-17.1 source root}")
 OUT=$ROOT/out/target/product/ags_w09/vendor
@@ -198,6 +204,8 @@ if 'android.hardware.wifi.hostapd' not in s2:
            '            <instance>default</instance>\n        </interface>\n    </hal>\n')
     s2 = s2[:m.end()] + blk + s2[m.end():]
 s2 = re.sub(r'\n[ \t]*<instance>widevine</instance>', '', s2)   # item 20
+s2 = re.sub(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.ir</name>.*?</hal>\n', '', s2,
+            flags=re.S)   # item 24
 if 'android.hardware.gatekeeper' not in s2:    # item 22, before keymaster as on stock
     m = re.search(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.keymaster</name>', s2)
     blk = ('    <hal format="hidl">\n        <name>android.hardware.gatekeeper</name>\n'
@@ -319,8 +327,12 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          etc/permissions/android.hardware.vulkan.level-0.xml etc/permissions/android.hardware.vulkan.version-1_0_3.xml \
          etc/permissions/android.hardware.sensor.light.xml etc/permissions/android.hardware.sensor.compass.xml \
          etc/permissions/android.hardware.sensor.gyroscope.xml etc/permissions/android.hardware.sensor.proximity.xml \
-         etc/permissions/android.hardware.sensor.stepdetector.xml; do
-    # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16
+         etc/permissions/android.hardware.sensor.stepdetector.xml \
+         etc/permissions/android.hardware.consumerir.xml bin/hw/android.hardware.ir@1.0-service \
+         etc/init/android.hardware.ir@1.0-service.rc lib/hw/consumerir.default.so \
+         lib64/hw/consumerir.default.so lib/hw/android.hardware.ir@1.0-impl.so \
+         lib64/hw/android.hardware.ir@1.0-impl.so; do
+    # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16; IR: item 24
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
@@ -343,8 +355,9 @@ sed -i 's/^ro.opengles.version=196610$/ro.opengles.version=196608/' /vendor/buil
 # turned it off). The driver reads this file (construct_configini_with_ini_type), not the copies.
 sed -i 's/^g11dSupportEnabled=0$/g11dSupportEnabled=1/' /vendor/etc/wifi/WCNSS_qcom_cfg_ags.ini
 P=/vendor/default.prop
+sed -i -e '/^# stage A2 bring-up: adb on at boot without authorization/d' -e '/^ro\.adb\.secure=0$/d' $P
 grep -q '^persist.sys.usb.config=adb' $P || printf '%s\n' \
-    '# stage A2 bring-up: adb on at boot without authorization (remove before release)' \
-    'persist.sys.usb.config=adb' 'ro.adb.secure=0' >> $P
+    '# stage A2: USB debugging on by default (as in 15.1); each PC must be authorized on the screen' \
+    'persist.sys.usb.config=adb' >> $P
 sync; umount /vendor; rm -rf /tmp/a2files /tmp/a2park.txt
 EOF
