@@ -106,9 +106,9 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   0037 (stage A2 item 21) starts `qseecomd`, Qualcomm's helper for TrustZone apps: they cannot
   reach storage themselves, and it serves their requests for the eMMC's replay-protected block
   (RPMB), the `ssd` partition, `/persist`, time and interrupts. Stock started it from
-  `init.target.rc`, which this port does not import, so it never ran on 17.1. Nothing here uses a
-  TrustZone app yet (keystore and gatekeeper run in software, as on 15.1; Widevine is L3), but it
-  is the prerequisite for any of them. With it running, the keymaster TrustZone app proved to be
+  `init.target.rc`, which this port does not import, so it never ran on 17.1. 15.1 had kept
+  keystore and gatekeeper in software, and Widevine is L3, so at first nothing used a TrustZone
+  app, but it is the prerequisite for any of them. With it running, the keymaster TrustZone app proved to be
   loaded (QSEE app id 4), contrary to the 15.1 note that this unit's TrustZone lacks it. Tested
   in isolation (Huawei's `keystore.msm8937.so` and `gatekeeper.msm8937.so`, set aside since 15.1,
   loaded directly): EC P-256 and RSA 2048 keys generated in TrustZone with 9 and 11 of their rules
@@ -124,6 +124,26 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   `android.software.secure_lock_screen`, so Settings had no PIN, pattern or password and
   `locksettings` answered "The device does not support lock screen". Stage A2 item 23 installs
   the build's Android 10 copy.
+  **Encryption is off by default**, a deliberate choice for speed (LineageOS asks devices whose
+  stock firmware forced encryption, as EMUI 8 did with file-based encryption, to default to it;
+  this port does not). Settings → Security → Encryption & credentials → Encrypt tablet is the
+  opt-in: vold's full-disk encryption in software (dm-crypt, `aes-cbc-essiv:sha256`, the key
+  wrapped with scrypt and the TrustZone keymaster). Like every full-disk encryption it is one-way:
+  only a factory reset makes the tablet unencrypted again. It needed two fixes: device 0041 drops
+  `TARGET_HW_DISK_ENCRYPTION` (stock Android 7's Qualcomm hardware disk encryption; vold asked for
+  a `cryptfshw` HAL this port does not have and refused), and 0042 sets
+  `vold.post_fs_data_done` at the end of post-fs-data (AOSP leaves it to the device; without it
+  encryption, and every boot of an encrypted tablet, hung on the boot animation). Checked on this
+  tablet: the in-place encryption of a 3.4 GB `/data` took about 2 minutes, the data survived,
+  boots unlock it without a PIN, and with "Secure start-up" the PIN is asked before Android
+  starts (wrong PIN rejected; this screen stays portrait, the panel's natural orientation). Cost,
+  same partition, 256 MB uncached: writes 64 → 61 MB/s with three times the CPU, reads 185 → 60
+  MB/s. The first boot after "Encrypt tablet" logs a few one-off SELinux denials (programs
+  inheriting vold's handle to the data partition); later boots have none. Without a PIN the
+  tablet unlocks itself, so encryption protects little; and since this bootloader starts any
+  image over USB, unencrypted data is open to anyone with a cable. File-based encryption, as on
+  stock, would cost less on reads (about −24% in a test) but needs a kernel change first: Huawei's
+  fscrypt only accepts 32-byte master keys and Android 10's vold uses 64.
   0031/0032 declare only the sensors the tablet has: an accelerometer, plus Qualcomm's step counter
   computed from it. The stock vendor and the 15.1 tree also claimed light, proximity, compass,
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
@@ -224,9 +244,9 @@ The fix numbers used in commits and notes (e.g. "fix 33") refer to the 15.1 fix 
 | 0. Prep: lineage-17.1 sync, kernel config audit, backups | done |
 | 1. First boot to adb (Android 10 init, first-stage mount, permissive at first) | done: boots unassisted in ~40 s, setup wizard, launcher |
 | 2. Vendor ABI audit (Oreo vendor blobs against Android 10 system libs) | boot blockers fixed (stage A2); full audit in [`vendor/blob-audit.md`](vendor/blob-audit.md): 1,913 unused files parked (124 MB, stage A2 item 19, device 0034), the rest annotated |
-| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); Bluetooth call audio (SCO, as calling apps use it): headset speaker and microphone in both directions, call volume from the tablet keys (policy patch above; the tested headset supports only narrowband HFP 1.5); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); hardware-backed keystore and lock screen PIN/pattern/password in TrustZone (qseecomd, stage A2 items 21–23); Widevine L3 protected video (stage A2 item 20 + device 0036 + the av patch; checked with a Widevine-encrypted stream in a WebView); GPS: outdoor fix in 89 s from a cold start, GPS + GLONASS + BeiDou, 4.6 m, position confirmed in a map app (0033 + kernel patch 13; no raw GNSS measurements, as on stock) |
+| 3. Hardware bring-up: display/GPU, touch, WiFi, sensors, audio, video, camera, charging | in progress: display, touch, sensors/auto-rotate, charging, Wi-Fi (factory MAC + calibration), storage, audio (speaker, mic recording, agassi ACDB), video (HW H.264/HEVC/VP8; SW VP9 up to 1080p30 — 1080p60 VP9 is beyond software decode on 4×A53, as there is no VP9 hardware), camera (rear 5 MP + front: preview, photo, 1080p video with sound) OK; notification shade at 60 fps over the launcher; LiveDisplay adaptive backlight (panel CABC); USB modes: File transfer (MTP, checked both ways), PTP, MIDI and the USB tethering adapter (device series 0026); Bluetooth on with the factory address, discoverable and scanning (0027 + the HAL patch); Bluetooth headphones: music (A2DP) and hands-free connect without crashes (0028); Bluetooth call audio (SCO, as calling apps use it): headset speaker and microphone in both directions, call volume from the tablet keys (policy patch above; the tested headset supports only narrowband HFP 1.5); GPU features as the Adreno 308 really has them: OpenGL ES 3.0, no Vulkan (0029); Wi-Fi hotspot (0030 + the Wi-Fi HAL stop patch; PC client at 38 Mbit/s, Wi-Fi returns after it); USB and Bluetooth tethering share the Wi-Fi internet (kernel: IPv6 rpfilter, conntrack template fix); 3.5 mm headset: music, headset-with-mic detection, play/pause and volume buttons; microSD read/write (FAT32, 20 MB/s read); hardware-backed keystore and lock screen PIN/pattern/password in TrustZone (qseecomd, stage A2 items 21–23); opt-in full-disk encryption from Settings (off by default; device 0041/0042); Widevine L3 protected video (stage A2 item 20 + device 0036 + the av patch; checked with a Widevine-encrypted stream in a WebView); GPS: outdoor fix in 89 s from a cold start, GPS + GLONASS + BeiDou, 4.6 m, position confirmed in a map app (0033 + kernel patch 13; no raw GNSS measurements, as on stock) |
 | 4. SELinux enforcing | done: enforcing boot with 0 denials (device 0038 quiets SystemUI's harmless lookup of the Bluetooth app's data folder when it draws that app's notifications, 0040 vold's daily fstrim of `/persist`); Wi-Fi, audio play/record, both cameras (photo + 1080p video), sensors, HW video, browser and apps pass with 0 denials (device series 0022/0023) |
-| 5. Reproducible vendor + release | — |
+| 5. Reproducible vendor + release | open: booting without a PC (today the system is RAM-booted from fastboot, and anything that restarts the tablet itself, such as "Encrypt tablet", lands in download mode until it is RAM-booted again); a LineageOS 17.1 recovery (the build makes one, not yet tried); the bring-up adb settings out of the vendor; the vendor rebuilt reproducibly. Known gaps: Wi-Fi always uses the factory MAC (Android's per-network private MAC is not applied); file-based encryption needs the fscrypt key-size change |
 
 ## ⚠️ This unit runs a flashed engineering QRD bootloader
 

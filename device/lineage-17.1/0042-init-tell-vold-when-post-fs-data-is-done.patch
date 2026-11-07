@@ -1,0 +1,35 @@
+From 748d9bd3a97bafa3ae434f982efadacf956d47eb Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 01:52:15 +0200
+Subject: [PATCH] init: tell vold when post-fs-data is done
+
+AOSP init.rc leaves "setprop vold.post_fs_data_done 1" to the device's
+init rc (stock's vendor init.qcom.rc had it; this port neutralises
+that file). Full-disk encryption waits for it after mounting the
+temporary /data: "Encrypt tablet" hung on the boot animation
+("waited 15s for vold.post_fs_data_done, still waiting"), and so would
+booting an encrypted /data. Set it at the end of post-fs-data.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ rootdir/init.qcom.rc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index 134b9da..4e5e710 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -150,6 +150,10 @@ on post-fs-data
+     chmod 2770 /data/system/perfd
+     rm /data/system/perfd/default_values
+     start perfd
++    # Tell vold this stage is done (AOSP init.rc leaves it to init.<device>.rc; stock's vendor
++    # init.qcom.rc did it). Full-disk encryption waits for it: "Encrypt tablet" and booting an
++    # encrypted /data hung on the boot animation without it.
++    setprop vold.post_fs_data_done 1
+ 
+ service perfd /vendor/bin/perfd
+     class main
+-- 
+2.53.0
+

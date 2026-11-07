@@ -1,0 +1,34 @@
+From a4013f7991defc843ec0e685811bd5dfbf4bc7ac Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Fri, 6 Nov 2026 21:22:56 +0200
+Subject: [PATCH] crypto: software full-disk encryption for the opt-in, no
+ Qualcomm HW FDE
+
+TARGET_HW_DISK_ENCRYPTION (stock Android 7's Qualcomm hardware disk
+encryption, libcryptfs_hw) built vold against the cryptfshw HAL, which
+this port does not have: Settings' "Encrypt tablet" stopped with
+"Failed to get Cryptfshw service" and left its convert_fde breadcrumb,
+so every boot retried and rebooted. Encryption stays off by default;
+the opt-in now uses vold's software dm-crypt (CPU AES instructions, the
+key bound to the TrustZone keymaster).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ board/crypto.mk | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/board/crypto.mk b/board/crypto.mk
+index 31c9e69..d35d132 100644
+--- a/board/crypto.mk
++++ b/board/crypto.mk
+@@ -1,2 +1,5 @@
+-# Encryption
+-TARGET_HW_DISK_ENCRYPTION := true
++# Encryption: off by default (fstab encryptable=footer), with Settings' "Encrypt tablet" as the
++# opt-in. That runs vold's software full-disk encryption (dm-crypt with the CPU's AES
++# instructions; the key protected by the TrustZone keymaster). TARGET_HW_DISK_ENCRYPTION is not
++# set: Qualcomm's hardware disk encryption (stock Android 7's, libcryptfs_hw) needs the cryptfshw
++# HAL, which this port does not have, and vold refused to encrypt without it.
+-- 
+2.53.0
+
