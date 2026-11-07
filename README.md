@@ -1,5 +1,14 @@
 # LineageOS 17.1 for HUAWEI MediaPad T3 10 (AGS-W09, codename "agassi")
 
+> **⚠️ Branch `trustzone-keystore` — kept for reference, do not flash this state.** It runs
+> Qualcomm's `qseecomd` with Huawei's TrustZone keystore and gatekeeper (stage A2 items 21-22).
+> On this tablet the TrustZone is the *engineering* one from the engineering bootloader package;
+> its keymaster writes records into the eMMC RPMB area the stock keymaster uses (measured: 4 RPMB
+> writes for one keystore key, none at boot). Afterwards stock EMUI, restored byte-for-byte from
+> the original backup, can no longer get its file-encryption key and ends in eRecovery: the way
+> back to stock is lost, and RPMB cannot be rolled back. `master` turns all of it off
+> (stage A2 item 26) and uses AOSP's software keymaster and gatekeeper.
+
 **Status: work in progress — boots to the home screen (first boot 2026-11-03); hardware bring-up
 ongoing.** This is the Android 10 follow-up to the
 [LineageOS 15.1 port](https://github.com/gabin8/LineageOS-15.1-HUAWEI-MediaPad-T3-10), which is
