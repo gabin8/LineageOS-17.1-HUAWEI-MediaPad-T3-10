@@ -47,3 +47,5 @@
 0047-sepolicy-time_daemon-may-search-persist.patch
 0048-init-load-persistent-properties-after-the-first-encr.patch
 0049-bt-keep-hciattach-out-of-late_start.patch
+0050-ags_w09-no-FM-radio.patch
+0051-tools-read-only-RPMB-probe.patch

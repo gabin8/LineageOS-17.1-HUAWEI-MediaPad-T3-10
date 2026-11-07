@@ -1,0 +1,47 @@
+From 61862cffc4f5afdd9e4ff9b44c1826f69c8a2a08 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 01:02:53 +0200
+Subject: [PATCH 50/51] ags_w09: no FM radio
+
+The WCN3660B's FM core powers up and tunes but reports no signal on any
+channel on this board (RSSI and SINR 0, also with Huawei's stock FM
+module and newer WCNSS firmware), so FMRadio only ever played silence.
+Leave FMRadio, libfmjni and the qcom FM build out until it is understood;
+the bring-up lives on the fm-radio branch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ board/fm.mk   | 4 ----
+ product/fm.mk | 8 --------
+ 2 files changed, 12 deletions(-)
+ delete mode 100644 board/fm.mk
+ delete mode 100644 product/fm.mk
+
+diff --git a/board/fm.mk b/board/fm.mk
+deleted file mode 100644
+index 9a324ee..0000000
+--- a/board/fm.mk
++++ /dev/null
+@@ -1,4 +0,0 @@
+-# FM
+-AUDIO_FEATURE_ENABLED_FM_POWER_OPT := true
+-BOARD_HAVE_QCOM_FM := true
+-TARGET_QCOM_NO_FM_FIRMWARE := true
+diff --git a/product/fm.mk b/product/fm.mk
+deleted file mode 100644
+index f99ff6b..0000000
+--- a/product/fm.mk
++++ /dev/null
+@@ -1,8 +0,0 @@
+-# FM
+-PRODUCT_PACKAGES += \
+-    FMRadio \
+-    libfmjni
+-
+-# Properties
+-PRODUCT_PROPERTY_OVERRIDES += \
+-    ro.fm.transmitter=false
+-- 
+2.53.0
+
