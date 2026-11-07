@@ -132,13 +132,20 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   stock firmware forced encryption, as EMUI 8 did with file-based encryption, to default to it;
   this port does not). Settings → Security → Encryption & credentials → Encrypt tablet is the
   opt-in: vold's full-disk encryption in software (dm-crypt, `aes-cbc-essiv:sha256`, the key
-  wrapped with scrypt and the keymaster; tested with the TrustZone keymaster, not yet re-tested
-  with the software one item 26 brings back). Like every full-disk encryption it is one-way:
-  only a factory reset makes the tablet unencrypted again. It needed two fixes: device 0041 drops
+  wrapped with scrypt and the keymaster; tested first with the TrustZone keymaster and again with
+  the software one item 26 brings back, which left the RPMB write counter unchanged).
+  Like every full-disk encryption it is one-way: only a factory reset makes the tablet
+  unencrypted again. It needed four fixes: device 0041 drops
   `TARGET_HW_DISK_ENCRYPTION` (stock Android 7's Qualcomm hardware disk encryption; vold asked for
   a `cryptfshw` HAL this port does not have and refused), and 0042 sets
   `vold.post_fs_data_done` at the end of post-fs-data (AOSP leaves it to the device; without it
-  encryption, and every boot of an encrypted tablet, hung on the boot animation). Checked on this
+  encryption, and every boot of an encrypted tablet, hung on the boot animation); 0048 loads the
+  persistent properties a second time after decryption (the boot that encrypts carries on without
+  a reboot, and init skipped the one load that counted, so time zone, locale and the Bluetooth
+  address were missing and Bluetooth crashed on that boot); 0049 takes Bluetooth's
+  `hci_qcomm_init` service out of class `late_start` (encryption's framework restart resets that
+  class and left the never-run service marked "stopped", so Bluetooth was reported ready before
+  the core was set up and crashed once on every encrypted boot). Checked on this
   tablet: the in-place encryption of a 3.4 GB `/data` took about 2 minutes, the data survived,
   boots unlock it without a PIN, and with "Secure start-up" the PIN is asked before Android
   starts (wrong PIN rejected; this screen stays portrait, the panel's natural orientation). Cost,

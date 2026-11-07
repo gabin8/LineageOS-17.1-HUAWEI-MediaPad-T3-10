@@ -1,0 +1,40 @@
+From ef660d8f91df9470619506cde67d070970e1067a Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 23:51:25 +0200
+Subject: [PATCH 48/49] init: load persistent properties after the first
+ encryption
+
+"Encrypt tablet" encrypts /data in place and vold then carries on with
+the same boot. ro.crypto.state was still unset at late-init, so init's
+encrypted-device counter in load_persist_props skips the post-decrypt
+call rather than the tmpfs one, and the user's persistent properties
+stayed unloaded until the next boot: time zone, locale and the Bluetooth
+address, without which the Bluetooth HAL aborted ("No Bluetooth
+Address!", "Bluetooth keeps stopping"). Load them a second time on
+vold's trigger; on other boots that re-reads the same values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ rootdir/init.qcom.rc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/rootdir/init.qcom.rc b/rootdir/init.qcom.rc
+index dd60dcf..0678392 100644
+--- a/rootdir/init.qcom.rc
++++ b/rootdir/init.qcom.rc
+@@ -174,3 +174,11 @@ service qcom-post-boot /vendor/bin/init.qcom.post_boot.sh
+     user root
+     disabled
+     oneshot
++
++# "Encrypt tablet" (FDE) encrypts in place and then vold carries on with the same boot. ro.crypto.state
++# was still unset at late-init, so init's encrypted-device counter in load_persist_props skips the
++# post-decrypt call instead of the tmpfs one, and the user's persistent properties (time zone, locale,
++# the Bluetooth address the BT HAL aborts without) stay unloaded until the next boot. A second load
++# right after vold's trigger covers that boot; on every other boot it re-reads the same values.
++on property:vold.decrypt=trigger_load_persist_props
++    load_persist_props
+-- 
+2.53.0
+

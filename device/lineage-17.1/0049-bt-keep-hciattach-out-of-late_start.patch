@@ -1,0 +1,40 @@
+From 081bd749321a7efd243279768b5f2ee35e17017a Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 23:51:25 +0200
+Subject: [PATCH 49/49] bt: keep hciattach out of late_start
+
+Full-disk encryption's trigger_shutdown_framework runs class_reset
+late_start, and init marks a never-started service "stopped" when it is
+reset. With init.svc.hciattach=stopped already set, the first enable on
+every encrypted boot met both conditions of the bluetooth.status
+trigger at once: the core was reported ready before hci_qcomm_init ran,
+the stack's HCI Reset (0x0c03) collided with its vendor commands on the
+SMD channel, timed out, and Bluetooth aborted once before recovering.
+The service is disabled and started only by its property trigger, so
+it needs no class.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ rootdir/init.ags_w09.bt.rc | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/rootdir/init.ags_w09.bt.rc b/rootdir/init.ags_w09.bt.rc
+index 6ae9898..3040ec6 100644
+--- a/rootdir/init.ags_w09.bt.rc
++++ b/rootdir/init.ags_w09.bt.rc
+@@ -1,7 +1,10 @@
+ # Bluetooth (WCN3660B over SMD). libbt-vendor powers the core up by setting bluetooth.hciattach=true
+ # and waiting for bluetooth.status=on; stock EMUI did this in its vendor init.qcom.rc.
++# No class: only the trigger below starts it. In class late_start, full-disk encryption's
++# class_reset (trigger_shutdown_framework) marked the never-run service init.svc.hciattach=stopped,
++# so the first enable on every encrypted boot got bluetooth.status=on before hci_qcomm_init ran: the
++# stack's HCI Reset (0x0c03) collided with its vendor commands, timed out and Bluetooth aborted.
+ service hciattach /vendor/bin/hci_qcomm_init -e
+-    class late_start
+     user bluetooth
+     # system: the oeminfo_nvm socket (root:system 0660) holds the factory BD address
+     group bluetooth net_bt_admin oem_2950 diag radio system
+-- 
+2.53.0
+

@@ -45,3 +45,5 @@
 0045-ags_w09-keep-the-light-HAL-alive-for-blank_screen-at.patch
 0046-ags_w09-TrustZone-keystore-gatekeeper-and-qseecomd-o.patch
 0047-sepolicy-time_daemon-may-search-persist.patch
+0048-init-load-persistent-properties-after-the-first-encr.patch
+0049-bt-keep-hciattach-out-of-late_start.patch
