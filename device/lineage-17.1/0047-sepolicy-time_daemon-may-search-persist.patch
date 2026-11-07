@@ -1,0 +1,31 @@
+From 536c771f689e715a5fb81c1374966afa7152324b Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sat, 7 Nov 2026 21:44:50 +0200
+Subject: [PATCH] sepolicy: time_daemon may search /persist
+
+Qualcomm's time daemon keeps its time offsets in /persist/time/ats_*
+(persist_time_file, allowed by the Qualcomm policy) but reaching them
+needs a search of /persist itself; it was denied and the daemon fell
+back to /data/time. Seen once qseecomd was gone.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ sepolicy/time_daemon.te | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sepolicy/time_daemon.te b/sepolicy/time_daemon.te
+index 44df603..87bc3d3 100644
+--- a/sepolicy/time_daemon.te
++++ b/sepolicy/time_daemon.te
+@@ -2,3 +2,7 @@
+ allow time_daemon self:capability { setuid setgid };
+ allow time_daemon time_data_file:dir rw_dir_perms;
+ allow time_daemon time_data_file:file create_file_perms;
++
++# Its time offsets go to /persist/time/ats_* (persist_time_file, allowed by the Qualcomm policy),
++# but reaching them needs a search of /persist itself; without it the daemon fell back to /data/time.
++allow time_daemon persist_file:dir search;
+-- 
+2.53.0
+

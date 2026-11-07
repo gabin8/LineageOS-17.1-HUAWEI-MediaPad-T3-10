@@ -44,3 +44,4 @@
 0044-ags_w09-drop-the-consumer-IR-HAL-and-feature.patch
 0045-ags_w09-keep-the-light-HAL-alive-for-blank_screen-at.patch
 0046-ags_w09-TrustZone-keystore-gatekeeper-and-qseecomd-o.patch
+0047-sepolicy-time_daemon-may-search-persist.patch
