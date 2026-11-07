@@ -92,17 +92,8 @@
 #       PROTOBUF_O=<LineageOS 15.1 system lib/libprotobuf-cpp-lite.so> (sha256 86a5b18c...)
 #     The DRM HAL's access to /data/mediadrm comes with stage A's policy (device series 0036), and
 #     the WebView needs frameworks/av-drm-legacy-factory-security-level.patch.
-# 21. qseecomd, Qualcomm's listener daemon for TrustZone apps (storage on the eMMC's RPMB, the ssd
-#     partition and /persist, time, interrupts): stock started it from init.target.rc, which this
-#     port does not import, so it never ran on 17.1. init.ags_w09.tee.rc starts it (device series
-#     0037, with the property labels for its Oreo-named sys.listeners.registered and
-#     sys.keymaster.loaded; those come with stage A's policy).
-# 22. Hardware-backed keystore and lock screen: Huawei's TrustZone modules keystore.msm8937.so
-#     (keymaster 1.0) and gatekeeper.msm8937.so, set aside as *.tzdisabled since the 15.1 vendor
-#     (Android used AOSP's software keystore and gatekeeper), work once qseecomd runs (item 21):
-#     the keymaster TrustZone app (loaded at boot, QSEE app id 4) serves both. Rename them back,
-#     install the Android 10 gatekeeper@1.0 service and declare it in the manifest, as stock did.
-#     Keys made by the software keystore before stop working (apps make new ones).
+# 21. (withdrawn by item 26) qseecomd, Qualcomm's listener daemon for TrustZone apps.
+# 22. (withdrawn by item 26) Hardware-backed keystore and gatekeeper in TrustZone.
 # 23. Android 10's handheld_core_hardware.xml (the build's; the vendor kept Android 8's). Android
 #     8's lacks android.software.secure_lock_screen, so Android 10 offered no PIN, pattern or
 #     password lock at all; it also adds android.software.cant_save_state.
@@ -111,6 +102,18 @@
 #     android.hardware.consumerir feature, so apps offered IR remote functions. Park the feature
 #     file, the service, its rc and the HAL modules, and drop android.hardware.ir from the manifest
 #     (device series 0044 removes them from the build).
+# 26. TrustZone keystore, gatekeeper and qseecomd OFF (undoes items 21-22 where they were applied).
+#     This unit runs the engineering TrustZone. With qseecomd running, its keymaster wrote records
+#     into the RPMB area the stock keymaster uses (read-only RPMB probe: 0 writes across an
+#     engineering bootloader boot and a full Android boot, 4 writes for one keystore key
+#     generate/encrypt/delete, all in the keymaster record). Afterwards stock EMUI, restored
+#     byte-for-byte from the original backup, failed to get its file-encryption key at every boot
+#     and fell into eRecovery: the way back to stock was gone. Park init.ags_w09.tee.rc and the
+#     gatekeeper@1.0 service/impls, keep keystore/gatekeeper.msm8937.so as *.tzdisabled and drop
+#     android.hardware.gatekeeper from the manifest: keystore falls back to AOSP's software
+#     keymaster and the lock screen to AOSP's software gatekeeper, as in the 15.1 port (device
+#     series 0046). A user whose lock settings were sealed by the TrustZone gatekeeper must remove
+#     /data/system_de/0/spblob/* and the sp-handle row of /data/system/locksettings.db once.
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -140,11 +143,6 @@ mkdir -p "$S/etc/permissions"   # item 16
 cp "$ROOT/device/huawei/ags_w09/configs/sensors/ags_w09_unavailable_sensors.xml" "$S/etc/permissions/"
 mkdir -p "$S/bin"; cp "$OUT/bin/ags_modem_holder" "$S/bin/"   # item 17
 cp "$OUT/etc/init/init.ags_w09.modem.rc" "$S/etc/init/"
-cp "$OUT/etc/init/init.ags_w09.tee.rc" "$S/etc/init/"   # item 21
-GK=android.hardware.gatekeeper@1.0   # item 22
-mkdir -p "$S/lib/hw" "$S/lib64/hw"
-cp "$OUT/bin/hw/$GK-service" "$S/bin/hw/"; cp "$OUT/etc/init/$GK-service.rc" "$S/etc/init/"
-cp "$OUT/lib/hw/$GK-impl.so" "$S/lib/hw/"; cp "$OUT/lib64/hw/$GK-impl.so" "$S/lib64/hw/"
 cp "$OUT/etc/permissions/handheld_core_hardware.xml" "$S/etc/permissions/"   # item 23
 mkdir -p "$S/etc/seccomp_policy"; cp "$POLICY" "$S/etc/seccomp_policy/configstore@1.0.policy"
 [ "$(adb shell getprop ro.build.version.release | tr -d '\r')" = 8.1.0 ] && \
@@ -206,13 +204,8 @@ if 'android.hardware.wifi.hostapd' not in s2:
 s2 = re.sub(r'\n[ \t]*<instance>widevine</instance>', '', s2)   # item 20
 s2 = re.sub(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.ir</name>.*?</hal>\n', '', s2,
             flags=re.S)   # item 24
-if 'android.hardware.gatekeeper' not in s2:    # item 22, before keymaster as on stock
-    m = re.search(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.keymaster</name>', s2)
-    blk = ('    <hal format="hidl">\n        <name>android.hardware.gatekeeper</name>\n'
-           '        <transport>hwbinder</transport>\n        <version>1.0</version>\n'
-           '        <interface>\n            <name>IGatekeeper</name>\n'
-           '            <instance>default</instance>\n        </interface>\n    </hal>\n')
-    s2 = s2[:m.start()] + blk + s2[m.start():]
+s2 = re.sub(r'[ \t]*<hal format="hidl">\s*<name>android.hardware.gatekeeper</name>.*?</hal>\n', '', s2,
+            flags=re.S)   # item 26
 if s2 != s:
     open(sys.argv[2], 'w').write(s2)
 EOF
@@ -304,9 +297,6 @@ for f in $(find . -type f | sed 's#^\./##'); do
             bin/ags_modem_holder)    # item 17
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:vendor_per_mgr_exec:s0 "$d" ;;
-            bin/hw/android.hardware.gatekeeper@1.0-service)    # item 22
-                chown root:shell "$d"; chmod 755 "$d"
-                chcon u:object_r:hal_gatekeeper_default_exec:s0 "$d" ;;
             bin/hw/hostapd)    # item 15
                 chown root:shell "$d"; chmod 755 "$d"
                 chcon u:object_r:hal_wifi_hostapd_default_exec:s0 "$d" ;;
@@ -317,8 +307,8 @@ for f in $(find . -type f | sed 's#^\./##'); do
     echo "ok $d"
 done
 chcon u:object_r:bluetooth_loader_exec:s0 /vendor/bin/hci_qcomm_init   # Bluetooth power-up (item 12)
-for b in lib lib64; do for m in keystore gatekeeper; do    # item 22
-    f=/vendor/$b/hw/$m.msm8937.so; [ ! -e $f.tzdisabled ] || mv $f.tzdisabled $f
+for b in lib lib64; do for m in keystore gatekeeper; do    # item 26: TrustZone modules stay off
+    f=/vendor/$b/hw/$m.msm8937.so; [ ! -e $f ] || mv $f $f.tzdisabled
 done; done
 for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so lib64/libnativebridge.so \
          lib/hw/audio.a2dp.default.so lib64/hw/audio.a2dp.default.so \
@@ -331,8 +321,12 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          etc/permissions/android.hardware.consumerir.xml bin/hw/android.hardware.ir@1.0-service \
          etc/init/android.hardware.ir@1.0-service.rc lib/hw/consumerir.default.so \
          lib64/hw/consumerir.default.so lib/hw/android.hardware.ir@1.0-impl.so \
-         lib64/hw/android.hardware.ir@1.0-impl.so; do
-    # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16; IR: item 24
+         lib64/hw/android.hardware.ir@1.0-impl.so \
+         etc/init/init.ags_w09.tee.rc etc/init/android.hardware.gatekeeper@1.0-service.rc \
+         bin/hw/android.hardware.gatekeeper@1.0-service lib/hw/android.hardware.gatekeeper@1.0-impl.so \
+         lib64/hw/android.hardware.gatekeeper@1.0-impl.so; do
+    # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16; IR: item 24;
+    # qseecomd and the TrustZone gatekeeper: item 26
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
