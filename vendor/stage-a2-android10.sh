@@ -114,6 +114,11 @@
 #     keymaster and the lock screen to AOSP's software gatekeeper, as in the 15.1 port (device
 #     series 0046). A user whose lock settings were sealed by the TrustZone gatekeeper must remove
 #     /data/system_de/0/spblob/* and the sp-handle row of /data/system/locksettings.db once.
+#     Also park the vendor's keystore.default.so (Android 8's software keymaster0 module, on
+#     libsoftkeymaster.so): with the TrustZone module set aside Android 10's keymaster loaded it, and
+#     its Oreo code aborted in BoringSSL (EVP_PKEY_free) on the first RSA key, which is what
+#     full-disk encryption uses: "Encrypt tablet" crashed the keymaster and vold rebooted in a loop.
+#     Without it the keymaster is Android 10's pure software one.
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -324,9 +329,10 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          lib64/hw/android.hardware.ir@1.0-impl.so \
          etc/init/init.ags_w09.tee.rc etc/init/android.hardware.gatekeeper@1.0-service.rc \
          bin/hw/android.hardware.gatekeeper@1.0-service lib/hw/android.hardware.gatekeeper@1.0-impl.so \
-         lib64/hw/android.hardware.gatekeeper@1.0-impl.so; do
+         lib64/hw/android.hardware.gatekeeper@1.0-impl.so \
+         lib/hw/keystore.default.so lib64/hw/keystore.default.so; do
     # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16; IR: item 24;
-    # qseecomd and the TrustZone gatekeeper: item 26
+    # qseecomd, the TrustZone gatekeeper and the Oreo software keymaster: item 26
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
