@@ -136,6 +136,12 @@
 #     already skipped all three. Drop them, and park media_codecs_8956.xml (stock's codec list for
 #     the MSM8956, read by nothing here). The codec list apps see is unchanged (device series 0054
 #     edits the source copy).
+# 30. Thermal: thermal-engine's own MSM8917 configuration, as on stock. The 15.1 vendor carried the
+#     device tree's first-template thermal-engine.conf, written for the 8-core MSM8937: its CPU
+#     loop drove the cpu_voltage device and its skin loop cluster0, neither of which exists here
+#     (the one cluster is cluster1), so the CPUs were never throttled for heat. Stock EMUI ships the
+#     file empty, which makes thermal-engine use its built-in MSM8917 settings (CPUs 85 C and case
+#     44 C on cluster1, GPU limits, cold-voltage restriction on tsens 0-9) (device series 0055).
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -379,6 +385,8 @@ sed -i -e '/<MediaCodec name="OMX\.qti\.audio\.decoder\.flac"/d' \
     -e '/<MediaCodec name="OMX\.qti\.video\.decoder\.divxsw"/,/<\/MediaCodec>/d' \
     -e '/<MediaCodec name="OMX\.qti\.video\.decoder\.divx4sw"/,/<\/MediaCodec>/d' \
     /vendor/etc/media_codecs.xml   # item 29
+printf '# File empty by default.\n# Replace contents of this file with custom configuration.\n' \
+    > /vendor/etc/thermal-engine.conf   # item 30 (stock's file: thermal-engine's own MSM8917 config)
 # Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
 # code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
 # lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had

@@ -52,3 +52,4 @@
 0052-display-no-sys.display-size.patch
 0053-sensors-list-only-what-the-tablet-has.patch
 0054-media-drop-codecs-Android-10-never-offers.patch
+0055-thermal-use-thermal-engine-s-own-MSM8917-configurati.patch
