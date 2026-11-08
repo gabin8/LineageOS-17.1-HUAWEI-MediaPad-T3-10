@@ -1,0 +1,114 @@
+From 12cb8e83be198d4b585a91476ad6913830ed9314 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 15:43:12 +0200
+Subject: [PATCH] sensors: hide sensors whose type HIDL cannot carry
+
+Qualcomm's sensors HAL on the AGS-W09 lists its SAR sensor (ADUX1050,
+com.qti.sensor.sar) with type 10005: neither a standard type nor at or
+above DEVICE_PRIVATE_BASE. Nothing happened until an app turned it on
+(AIDA64's sensor page turns on every sensor); its first event then hit
+the CHECK in convertFromSensorEvent(), the HAL service aborted, and
+SensorService took system_server down with it (a soft reboot).
+
+Leave such sensors out of getSensorsList() and drop their events in
+poll(), so no app can see or turn them on. Flush-complete (META_DATA,
+type 0) and all standard and device-private types pass as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+Change-Id: Ie1c02fa33ff99a2361de6b15d7322c3315be43ce
+---
+ sensors/1.0/default/Sensors.cpp | 38 ++++++++++++++++++++++++++++-----
+ sensors/1.0/default/Sensors.h   |  3 +++
+ 2 files changed, 36 insertions(+), 5 deletions(-)
+
+diff --git a/sensors/1.0/default/Sensors.cpp b/sensors/1.0/default/Sensors.cpp
+index 1100dd6..bb941da 100644
+--- a/sensors/1.0/default/Sensors.cpp
++++ b/sensors/1.0/default/Sensors.cpp
+@@ -28,6 +28,17 @@ namespace sensors {
+ namespace V1_0 {
+ namespace implementation {
+ 
++// A sensor type HIDL can carry: a standard one or a vendor type at or above
++// DEVICE_PRIVATE_BASE. A vendor HAL that gives a vendor sensor a type in the reserved range
++// in between (Qualcomm's SAR sensor on the AGS-W09 reports 10005) would otherwise abort the
++// whole service in convertFromSensorEvent() when an app turns that sensor on, and
++// SensorService then takes system_server down with it.
++static bool isRepresentableType(int32_t type) {
++    return (type >= (int32_t)SensorType::META_DATA &&   // 0: flush-complete events
++            type <= (int32_t)SensorType::ACCELEROMETER_UNCALIBRATED) ||
++           type >= (int32_t)SensorType::DEVICE_PRIVATE_BASE;
++}
++
+ /*
+  * If a multi-hal configuration file exists in the proper location,
+  * return true indicating we need to use multi-hal functionality.
+@@ -120,12 +131,20 @@ Return<void> Sensors::getSensorsList(getSensorsList_cb _hidl_cb) {
+     hidl_vec<SensorInfo> out;
+     out.resize(count);
+ 
++    size_t n = 0;
+     for (size_t i = 0; i < count; ++i) {
+         const sensor_t *src = &list[i];
+-        SensorInfo *dst = &out[i];
+-
+-        convertFromSensor(*src, dst);
++        if (!isRepresentableType(src->type)) {
++            if (mHiddenHandles.insert(src->handle).second) {
++                LOG(WARNING) << "Hiding sensor '" << (src->name ? src->name : "")
++                             << "' (handle " << src->handle << "): type " << src->type
++                             << " is neither standard nor device-private";
++            }
++            continue;
++        }
++        convertFromSensor(*src, &out[n++]);
+     }
++    out.resize(n);
+ 
+     _hidl_cb(out);
+ 
+@@ -223,8 +242,17 @@ Return<void> Sensors::poll(int32_t maxCount, poll_cb _hidl_cb) {
+         dynamicSensorsAdded[numDynamicSensors] = info;
+     }
+ 
+-    out.resize(count);
+-    convertFromSensorEvents(err, data.get(), &out);
++    // Drop events of hidden sensors (their types cannot be converted).
++    size_t kept = 0;
++    for (size_t i = 0; i < count; ++i) {
++        if (isRepresentableType(data[i].type)) {
++            if (kept != i) data[kept] = data[i];
++            ++kept;
++        }
++    }
++
++    out.resize(kept);
++    convertFromSensorEvents(kept, data.get(), &out);
+ 
+     _hidl_cb(Result::OK, out, dynamicSensorsAdded);
+ 
+diff --git a/sensors/1.0/default/Sensors.h b/sensors/1.0/default/Sensors.h
+index be00a96..d0bbef1 100644
+--- a/sensors/1.0/default/Sensors.h
++++ b/sensors/1.0/default/Sensors.h
+@@ -22,6 +22,7 @@
+ #include <android/hardware/sensors/1.0/ISensors.h>
+ #include <hardware/sensors.h>
+ #include <mutex>
++#include <unordered_set>
+ 
+ namespace android {
+ namespace hardware {
+@@ -68,6 +69,8 @@ private:
+     sensors_module_t *mSensorModule;
+     sensors_poll_device_1_t *mSensorDevice;
+     std::mutex mPollLock;
++    // Handles of HAL sensors whose type HIDL cannot carry (see getSensorsList).
++    std::unordered_set<int32_t> mHiddenHandles;
+ 
+     int getHalDeviceVersion() const;
+ 
+-- 
+2.53.0
+

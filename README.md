@@ -223,6 +223,13 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
     Android 10 wrapper called the wrong hooks (its `dump` was the HAL's empty `set_master_mute`
     slot; master mute and the audio port hooks were also off by one). The 2.0 wrapper now reads
     such HALs through the Android 8 layout, as Huawei's stock wrapper did. Installed by stage A2.
+  - `hardware_interfaces-sensors-hide-unrepresentable-types.patch` — opening AIDA64's sensor page
+    restarted Android. Qualcomm's sensors HAL lists the tablet's SAR sensor (ADUX1050) with type
+    10005, which is neither a standard type nor in the device-private range; the first event of
+    that sensor aborted the sensors service in AOSP's conversion code, and SensorService then
+    aborted `system_server`. Such sensors are now left out of the list (and their events
+    dropped), so no app can turn them on; Huawei's stock EMUI 8 used its own sensors wrapper.
+    Installed with the sensors HAL by stage A2 (item 1).
   - `vendor_qcom_audio-policy-reroute-idle-primary.patch` — with a Bluetooth headset in a call,
     an app that only recorded (no sound playing) got the tablet's built-in microphone. Qualcomm's
     audio policy reroutes only playing outputs when the call audio moves to the headset (AOSP
