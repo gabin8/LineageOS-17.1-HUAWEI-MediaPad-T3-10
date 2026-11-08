@@ -50,3 +50,4 @@
 0050-ags_w09-no-FM-radio.patch
 0051-tools-read-only-RPMB-probe.patch
 0052-display-no-sys.display-size.patch
+0053-sensors-list-only-what-the-tablet-has.patch

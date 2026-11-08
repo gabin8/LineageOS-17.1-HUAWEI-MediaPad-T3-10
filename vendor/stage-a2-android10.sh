@@ -124,6 +124,13 @@
 #     reads it and stock EMUI never set it, but hardware-info apps (AIDA64) showed it as the
 #     screen: 3840x2160 and 28 inches instead of the 800x1280, 9.6-inch panel (device series
 #     0052 drops it from the build).
+# 28. Sensors in the Android list: only what the tablet has. Its one physical sensor is the
+#     accelerometer; Qualcomm's HAL also listed 12 virtual sensors on top of it. Keep the standard
+#     step counter, significant motion and tilt detector (checked: steps counted, tilt fired);
+#     switch off the rest with the HAL's ro.qti.sensors.* properties (stock set none): gravity and
+#     linear acceleration fail to enable (no fusion service on this firmware), the others are
+#     Qualcomm-private algorithms no app uses or need a gyro, compass or proximity sensor. AIDA64's
+#     sensor page listed and tried them all (device series 0053 sets the same properties).
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -355,6 +362,13 @@ R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 sed -i 's/^debug.sf.latch_unsignaled=1$/debug.sf.latch_unsignaled=0/' /vendor/build.prop
 sed -i 's/^ro.opengles.version=196610$/ro.opengles.version=196608/' /vendor/build.prop   # item 14
 sed -i '/^sys\.display-size=/d' /vendor/build.prop   # item 27
+grep -q '^ro.qti.sensors.gravity=' /vendor/build.prop || {   # item 28
+    echo '# stage A2 item 28: Android sensor list = accelerometer, step counter, significant motion, tilt'
+    echo ro.qti.sdk.sensors.gestures=false
+    for s in amd bte cmc dev_ori dpc facing fast_amd game_rv georv gravity laccel mot_detect multishake orientation pedometer pmd proximity pug qheart rmd rotvec scrn_ortn sta_detect step_detector tap vmd; do
+        echo "ro.qti.sensors.$s=false"
+    done
+} >> /vendor/build.prop
 # Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
 # code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
 # lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had

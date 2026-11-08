@@ -1,0 +1,67 @@
+From d9fe87a784926ff35c9225106a44d269681aeb07 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 17:36:28 +0200
+Subject: [PATCH] sensors: list only what the tablet has
+
+The tablet's one physical sensor is the accelerometer, but Qualcomm's
+sensors HAL listed 12 virtual sensors on top of it (and a SAR sensor),
+and hardware-info apps showed and tried them all. Keep the standard step
+counter, significant motion and tilt detector (steps counted and tilt
+fired on the tablet) and switch the rest off with the HAL's
+ro.qti.sensors.* properties: gravity and linear acceleration fail to
+enable on this firmware (no fusion service), the others are
+Qualcomm-private algorithms no app uses, or need a gyro, compass or
+proximity sensor the tablet does not have.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ product/sensors.mk | 35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/product/sensors.mk b/product/sensors.mk
+index eb50d5d..8dbfeb7 100644
+--- a/product/sensors.mk
++++ b/product/sensors.mk
+@@ -15,3 +15,38 @@ PRODUCT_COPY_FILES += \
+     $(DEVICE_PATH)/configs/sensors/ags_w09_unavailable_sensors.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/ags_w09_unavailable_sensors.xml \
+     $(DEVICE_PATH)/configs/sensors/hals.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/hals.conf \
+     $(DEVICE_PATH)/configs/sensors/sensor_def_qcomdev.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/sensor_def_qcomdev.conf
++
++# Qualcomm sensors HAL: list only what the tablet has. Its one physical sensor is the accelerometer;
++# of the HAL's virtual sensors on top of it keep the standard step counter, significant motion and
++# tilt detector. Gravity and linear acceleration fail to enable here (no fusion service on this
++# firmware), the rest are Qualcomm-private algorithms no app uses or need a gyro, compass or
++# proximity sensor the tablet does not have. (Qualcomm's own services reach the sensor daemon
++# directly; this only changes the Android sensor list.)
++PRODUCT_PROPERTY_OVERRIDES += \
++    ro.qti.sdk.sensors.gestures=false \
++    ro.qti.sensors.amd=false \
++    ro.qti.sensors.bte=false \
++    ro.qti.sensors.cmc=false \
++    ro.qti.sensors.dev_ori=false \
++    ro.qti.sensors.dpc=false \
++    ro.qti.sensors.facing=false \
++    ro.qti.sensors.fast_amd=false \
++    ro.qti.sensors.game_rv=false \
++    ro.qti.sensors.georv=false \
++    ro.qti.sensors.gravity=false \
++    ro.qti.sensors.laccel=false \
++    ro.qti.sensors.mot_detect=false \
++    ro.qti.sensors.multishake=false \
++    ro.qti.sensors.orientation=false \
++    ro.qti.sensors.pedometer=false \
++    ro.qti.sensors.pmd=false \
++    ro.qti.sensors.proximity=false \
++    ro.qti.sensors.pug=false \
++    ro.qti.sensors.qheart=false \
++    ro.qti.sensors.rmd=false \
++    ro.qti.sensors.rotvec=false \
++    ro.qti.sensors.scrn_ortn=false \
++    ro.qti.sensors.sta_detect=false \
++    ro.qti.sensors.step_detector=false \
++    ro.qti.sensors.tap=false \
++    ro.qti.sensors.vmd=false
+-- 
+2.53.0
+

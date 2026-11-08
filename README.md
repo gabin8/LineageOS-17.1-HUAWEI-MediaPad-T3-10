@@ -168,6 +168,12 @@ A forward-port of the 15.1 port, not a new port. This repository starts from the
   gyroscope and step detector sensors, so apps looked for sensors that are not there (stage A2
   item 16 parks those files; `ags_w09_unavailable_sensors.xml` takes back the compass that
   `handheld_core_hardware.xml` declares for every handheld). Adaptive brightness was already off.
+  The sensor list itself matches: Qualcomm's HAL also listed 12 virtual sensors and a SAR sensor,
+  which apps such as AIDA64 showed and tried (and the SAR sensor's type crashed Android, see
+  `hardware_interfaces-sensors-hide-unrepresentable-types.patch`). Device 0053 and stage A2 item 28
+  switch off all but the step counter, significant motion and tilt detector, so apps see the
+  accelerometer and those three (steps counted and tilt fired on the tablet; gravity and linear
+  acceleration could not even be enabled here).
 - **Wi-Fi country** (reported on XDA for 15.1: routers rejected because no country code was set):
   a Wi-Fi-only tablet has no telephony to set one and LineageOS no EMUI region config, so prima
   stayed on the world domain (5 GHz and channels 12–13 passive-scan only). Stage A2 now enables
