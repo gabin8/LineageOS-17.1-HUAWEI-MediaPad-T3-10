@@ -6,8 +6,11 @@ there is no FM radio (see the hardware table). This is the Android 10 follow-up 
 [LineageOS 15.1 port](https://github.com/gabin8/LineageOS-15.1-HUAWEI-MediaPad-T3-10).
 
 **Download (test build):** [v17.1-20261108](https://github.com/gabin8/LineageOS-17.1-HUAWEI-MediaPad-T3-10/releases/tag/v17.1-20261108):
-one zip with the RAM-boot image, system and vendor images, kernel source and `INSTALL.txt`. Needs
-the engineering bootloader; read `INSTALL.txt` first. The boot image is only ever `fastboot boot`ed.
+one zip with the RAM-boot image, system and vendor images and `INSTALL.txt`. Needs the engineering
+bootloader; read `INSTALL.txt` first. The boot image is only ever `fastboot boot`ed. Kernel source:
+[clienthax's AGS-W09 kernel](https://github.com/clienthax/android_kernel_huawei_AGS-W09) (`b4cffd28`)
+and [prima](https://github.com/clienthax/qcom_opensource_wlan_prima) (`eed7cd6`) with the patch series
+in [`kernel/`](kernel/series).
 
 - **Device:** Huawei MediaPad T3 10, model **AGS-W09** (Wi‑Fi only), codename **agassi / ags_w09**
 - **SoC:** Qualcomm Snapdragon 425 / MSM8917 (msm8937 family), 4 cores, 2 GB RAM
