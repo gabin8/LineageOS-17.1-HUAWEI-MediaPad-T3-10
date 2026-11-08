@@ -131,6 +131,11 @@
 #     linear acceleration fail to enable (no fusion service on this firmware), the others are
 #     Qualcomm-private algorithms no app uses or need a gyro, compass or proximity sensor. AIDA64's
 #     sensor page listed and tried them all (device series 0053 sets the same properties).
+# 29. Codec list clean-up (cosmetic): media_codecs.xml declared a Qualcomm FLAC decoder that the
+#     OMX core does not have and two DivX decoders for a type Android 10 does not know; Android
+#     already skipped all three. Drop them, and park media_codecs_8956.xml (stock's codec list for
+#     the MSM8956, read by nothing here). The codec list apps see is unchanged (device series 0054
+#     edits the source copy).
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -342,9 +347,10 @@ for f in lib/libnativeloader.so lib/libnativebridge.so lib64/libnativeloader.so 
          etc/init/init.ags_w09.tee.rc etc/init/android.hardware.gatekeeper@1.0-service.rc \
          bin/hw/android.hardware.gatekeeper@1.0-service lib/hw/android.hardware.gatekeeper@1.0-impl.so \
          lib64/hw/android.hardware.gatekeeper@1.0-impl.so \
-         lib/hw/keystore.default.so lib64/hw/keystore.default.so; do
+         lib/hw/keystore.default.so lib64/hw/keystore.default.so \
+         etc/media_codecs_8956.xml; do
     # a2dp: item 13; vulkan and the feature files: item 14; light sensor: item 16; IR: item 24;
-    # qseecomd, the TrustZone gatekeeper and the Oreo software keymaster: item 26
+    # qseecomd, the TrustZone gatekeeper and the Oreo software keymaster: item 26; 8956 codec list: 29
     mkdir -p /vendor/stage-a-parked/${f%/*}
     [ ! -e /vendor/$f ] || mv /vendor/$f /vendor/stage-a-parked/$f
 done
@@ -369,6 +375,10 @@ grep -q '^ro.qti.sensors.gravity=' /vendor/build.prop || {   # item 28
         echo "ro.qti.sensors.$s=false"
     done
 } >> /vendor/build.prop
+sed -i -e '/<MediaCodec name="OMX\.qti\.audio\.decoder\.flac"/d' \
+    -e '/<MediaCodec name="OMX\.qti\.video\.decoder\.divxsw"/,/<\/MediaCodec>/d' \
+    -e '/<MediaCodec name="OMX\.qti\.video\.decoder\.divx4sw"/,/<\/MediaCodec>/d' \
+    /vendor/etc/media_codecs.xml   # item 29
 # Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
 # code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
 # lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had

@@ -1,0 +1,59 @@
+From 591d79f9fdd108b1d2bcd2b57eddd0c733b51b11 Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 18:16:22 +0200
+Subject: [PATCH] media: drop codecs Android 10 never offers
+
+media_codecs.xml declared a Qualcomm FLAC decoder (OMX.qti.audio.decoder.
+flac) that the OMX core does not provide and two DivX software decoders
+for video/divx and video/divx4, which Android 10 has no role for. Android
+already left all three out of the codec list; remove them so the file
+matches what apps see.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ configs/media_codecs.xml | 21 ---------------------
+ 1 file changed, 21 deletions(-)
+
+diff --git a/configs/media_codecs.xml b/configs/media_codecs.xml
+index c629f28..16375c1 100644
+--- a/configs/media_codecs.xml
++++ b/configs/media_codecs.xml
+@@ -152,7 +152,6 @@ Only the three quirks included above are recognized at this point:
+     </Encoders>
+     <Decoders>
+         <!-- Audio Software  -->
+-        <MediaCodec name="OMX.qti.audio.decoder.flac" type="audio/flac" />
+         <!-- Video Hardware  -->
+         <MediaCodec name="OMX.qcom.video.decoder.avc" type="video/avc" >
+             <Quirk name="requires-allocate-on-input-ports" />
+@@ -204,26 +203,6 @@ Only the three quirks included above are recognized at this point:
+             <Feature name="adaptive-playback" />
+             <Limit name="concurrent-instances" max="8" />
+         </MediaCodec>
+-        <MediaCodec name="OMX.qti.video.decoder.divxsw" type="video/divx" >
+-            <Quirk name="requires-allocate-on-input-ports" />
+-            <Quirk name="requires-allocate-on-output-ports" />
+-            <Limit name="size" min="16x16" max="1920x1088" />
+-            <Limit name="alignment" value="2x2" />
+-            <Limit name="block-size" value="16x16" />
+-            <Limit name="blocks-per-second" min="1" max="244800" />
+-            <Limit name="bitrate" range="1-6000000" />
+-            <Limit name="concurrent-instances" max="16" />
+-        </MediaCodec>
+-        <MediaCodec name="OMX.qti.video.decoder.divx4sw" type="video/divx4" >
+-            <Quirk name="requires-allocate-on-input-ports" />
+-            <Quirk name="requires-allocate-on-output-ports" />
+-            <Limit name="size" min="16x16" max="1920x1088" />
+-            <Limit name="alignment" value="2x2" />
+-            <Limit name="block-size" value="16x16" />
+-            <Limit name="blocks-per-second" min="1" max="244800" />
+-            <Limit name="bitrate" range="1-6000000" />
+-            <Limit name="concurrent-instances" max="16" />
+-        </MediaCodec>
+         <MediaCodec name="OMX.qti.video.decoder.mpeg4sw">
+             <Quirk name="requires-allocate-on-input-ports" />
+             <Quirk name="requires-allocate-on-output-ports" />
+-- 
+2.53.0
+
