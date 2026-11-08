@@ -119,6 +119,11 @@
 #     its Oreo code aborted in BoringSSL (EVP_PKEY_free) on the first RSA key, which is what
 #     full-disk encryption uses: "Encrypt tablet" crashed the keymaster and vold rebooted in a loop.
 #     Without it the keymaster is Android 10's pure software one.
+# 27. No sys.display-size. The 15.1 vendor's build.prop (from the device tree's first template)
+#     set sys.display-size=3840x2160, a Qualcomm reference-board value. Nothing on the tablet
+#     reads it and stock EMUI never set it, but hardware-info apps (AIDA64) showed it as the
+#     screen: 3840x2160 and 28 inches instead of the 800x1280, 9.6-inch panel (device series
+#     0052 drops it from the build).
 #  6. USB debugging on by default, as in the 15.1 release (LineageOS 17.1 userdebug ships
 #     persist.sys.usb.config=none). Vendor props override prop.default on Q. Authorization stays
 #     on (ro.adb.secure=1 from the system): each PC is confirmed on the tablet's screen. Removes
@@ -349,6 +354,7 @@ R=/vendor/etc/init/vendor.lineage.livedisplay@1.0-service-sdm.rc
 # vendor build.prop set 1): volume panel and any GPU-fallback frame showed garbage on screen.
 sed -i 's/^debug.sf.latch_unsignaled=1$/debug.sf.latch_unsignaled=0/' /vendor/build.prop
 sed -i 's/^ro.opengles.version=196610$/ro.opengles.version=196608/' /vendor/build.prop   # item 14
+sed -i '/^sys\.display-size=/d' /vendor/build.prop   # item 27
 # Wi-Fi country (XDA thread #26): no telephony and no EMUI region config, so nothing sets a country
 # code and prima stays on the world domain (5 GHz and channels 12-13 passive-scan only). 802.11d
 # lets the driver take the country from the access point's beacon (Qualcomm's default; Huawei had

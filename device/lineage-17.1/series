@@ -49,3 +49,4 @@
 0049-bt-keep-hciattach-out-of-late_start.patch
 0050-ags_w09-no-FM-radio.patch
 0051-tools-read-only-RPMB-probe.patch
+0052-display-no-sys.display-size.patch
