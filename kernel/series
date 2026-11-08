@@ -23,4 +23,6 @@ modem-board-info-smem-vendor2.patch # 13. modem id + product in SMEM_ID_VENDOR2,
                                 #     does (the modem ran without its board config: no GPS)
 parade-empty-buffer-log.patch   # 14. touch: the empty buffer read after each ESD watchdog ping is
                                 #     normal PIP; log it at debug level (was an error once a second)
+smb1360-battery-no-thermal-zone.patch # 15. no "battery" thermal zone (nothing reads it; info
+                                #     apps listed the battery temperature twice)
 # Build: scripts/build-kernel.sh <lineage tree> <out dir>

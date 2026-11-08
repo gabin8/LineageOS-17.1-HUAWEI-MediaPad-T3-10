@@ -1,0 +1,38 @@
+From 9890b4afcc6a254de1d786f3669230400842525c Mon Sep 17 00:00:00 2001
+From: builder <builder@localhost>
+Date: Sun, 8 Nov 2026 18:21:47 +0200
+Subject: [PATCH] power: smb1360: no thermal zone for the battery supply
+
+The power supply core registers a thermal zone for every supply that
+reports a temperature, so the battery appeared as thermal zone "battery"
+next to Android's own battery temperature, and hardware-info apps
+(AIDA64) listed it twice. Nothing reads the zone: Android's battery
+service and thermal-engine (its battery charging action) use the power
+supply itself. Set no_thermal for the battery supply.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016iwHzV2tPonTxdceSkWZtS
+---
+ drivers/power/smb1360-charger-fg.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/power/smb1360-charger-fg.c b/drivers/power/smb1360-charger-fg.c
+index 9c6b3c6c..6a4a0e06 100644
+--- a/drivers/power/smb1360-charger-fg.c
++++ b/drivers/power/smb1360-charger-fg.c
+@@ -5640,6 +5640,12 @@ static int smb1360_probe(struct i2c_client *client,
+ 	chip->batt_psy.num_properties  = ARRAY_SIZE(smb1360_battery_properties);
+ 	chip->batt_psy.external_power_changed = smb1360_external_power_changed;
+ 	chip->batt_psy.property_is_writeable = smb1360_battery_is_writeable;
++	/*
++	 * No "battery" thermal zone: nothing reads it (Android's battery service and
++	 * thermal-engine use the power supply), and hardware-info apps listed the
++	 * battery temperature twice, once from the zone and once from Android.
++	 */
++	chip->batt_psy.no_thermal = true;
+ 
+ 	rc = power_supply_register(chip->dev, &chip->batt_psy);
+ 	if (rc < 0) {
+-- 
+2.53.0
+
