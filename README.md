@@ -1,9 +1,13 @@
 # LineageOS 17.1 for HUAWEI MediaPad T3 10 (AGS-W09, codename "agassi")
 
-**Status: work in progress — boots to the home screen (first boot 2026-11-03); hardware bring-up
-ongoing.** This is the Android 10 follow-up to the
-[LineageOS 15.1 port](https://github.com/gabin8/LineageOS-15.1-HUAWEI-MediaPad-T3-10), which is
-daily-usable. **If you want a working ROM today, use 15.1.**
+**Status: first test build (2026-11-08).** Wi-Fi, Bluetooth, GPS, audio, both cameras, hardware
+video, sensors, USB (including OTG host), microSD and opt-in encryption are tested on the tablet;
+there is no FM radio (see the hardware table). This is the Android 10 follow-up to the
+[LineageOS 15.1 port](https://github.com/gabin8/LineageOS-15.1-HUAWEI-MediaPad-T3-10).
+
+**Download (test build):** [v17.1-20261108](https://github.com/gabin8/LineageOS-17.1-HUAWEI-MediaPad-T3-10/releases/tag/v17.1-20261108):
+one zip with the RAM-boot image, system and vendor images, kernel source and `INSTALL.txt`. Needs
+the engineering bootloader; read `INSTALL.txt` first. The boot image is only ever `fastboot boot`ed.
 
 - **Device:** Huawei MediaPad T3 10, model **AGS-W09** (Wi‑Fi only), codename **agassi / ags_w09**
 - **SoC:** Qualcomm Snapdragon 425 / MSM8917 (msm8937 family), 4 cores, 2 GB RAM
